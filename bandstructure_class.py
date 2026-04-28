@@ -21,9 +21,9 @@ class BandStructureSim:
     thickness : float
         Slab thickness (µm).
     geometry : str
-        'circular', 'square', or 'ellipse'.
+        'circular', 'rectangle', or 'ellipse'.
     geometry_params : list of float
-        In µm. diameter for circular, [dx, dy] for ellipse/square.
+        In µm. diameter for circular, [dx, dy] for ellipse/rectangle.
     material_index : float
         Refractive index of the slab.
     num_bands : int
@@ -95,7 +95,7 @@ class BandStructureSim:
             self.lattice = mp.Lattice(size=mp.Vector3(1, self.factor_y*self.Ly_norm, self.factor_z*self.t_norm),basis1=mp.Vector3(1, 0, 0))
             return [slab, hole]
         
-        elif self.geometry_type == "square":
+        elif self.geometry_type == "rectangle":
             hole = mp.Block(
                 material=mp.air,
                 center=mp.Vector3(0, 0, 0),
@@ -113,7 +113,7 @@ class BandStructureSim:
             self.lattice = mp.Lattice(size=mp.Vector3(1, self.factor_y*self.Ly_norm, self.factor_z*self.t_norm),basis1=mp.Vector3(1, 0, 0))
             return [slab, hole]
         
-        elif self.geometry_type == "sawtooth_square":
+        elif self.geometry_type == "sawtooth_rect":
             # Central beam (same as slab)
 
             tooth_w = geometry_params_norm[0]  # width along x

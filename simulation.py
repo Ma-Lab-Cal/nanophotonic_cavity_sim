@@ -14,7 +14,7 @@ from tidy3d.plugins.mode import ModeSolver
 
 from scipy.constants import hbar, pi, epsilon_0, c, h
 
-from hole import hole_geometry
+from crystal import crystal_tidy
 
 C0 = td.constants.C_0           # speed of light in vacuum (µm/s)
 C0_m = td.constants.C_0 * 1e-6  # speed of light in vacuum (m/s)
@@ -219,7 +219,7 @@ class Cavity_simulation:
     # ──────────────────────────────────────────────────────────────────
 
     def _compute_sim_domain(self):
-        """Compute simulation center and size from hole positions."""
+        """Compute simulation center and size from crystal positions."""
         padding = 2 * self.wlM
         positions = self.beam_layout["positions"]
         lattices = self.beam_layout["lattice"]
@@ -467,7 +467,7 @@ class Cavity_simulation:
     # ──────────────────────────────────────────────────────────────────
 
     def _build_nanobeam(self):
-        """Build waveguide slab + air holes as Tidy3D Structures."""
+        """Build waveguide slab + crystals as Tidy3D Structures."""
         geometry_wvg = td.PolySlab(
             vertices=[
                 [-2 * self.sim_size[0],  self.context["width"] / 2],
@@ -488,22 +488,25 @@ class Cavity_simulation:
             name="Nanobeam",
         )
 
-        hole_geometries = [
-            hole_geometry(
-                self.context["geometry"],
+        crystal_geometries = [
+            crystal_tidy(
+                self.context,
                 (x, 0, 0),
-                self.beam_layout["hole_params"][i],
-                self.context["thickness"],          # pass thickness explicitly
+                self.beam_layout["geometry_params"][i],
+                self.beam_layout["lattice"][i] 
             )
             for i, x in enumerate(self.beam_layout["positions"])
         ]
-        holes = td.Structure(
-            geometry=td.GeometryGroup(geometries=hole_geometries),
-            medium=td.Medium(permittivity=1),
-            name="Nanobeam_holes",
-        )
 
-        return [waveguide, holes]
+        is_hole = self.context["geometry"] == "ellipse" or self.context["geometry"] == "rectangle"
+
+        crystals = td.Structure(
+            geometry=td.GeometryGroup(geometries=crystal_geometries),
+            medium=td.Medium(permittivity=1) if is_hole else self.nanobeam_medium,
+            name="Nanobeam_crystals",
+        )
+        
+        return [waveguide, crystals]
 
     # ──────────────────────────────────────────────────────────────────
     #  Bandstructure
@@ -536,18 +539,18 @@ class Cavity_simulation:
             name="slab",
         )
 
-        hole = td.Structure(
-            geometry=hole_geometry(
-                geometry=context["geometry"],
-                hole_center=(0, 0, 0),
-                params=parameters["hole_params"],
-                thickness=context["thickness"],          # pass thickness explicitly
+        crystal = td.Structure(
+            geometry=crystal_tidy(
+                context=context,
+                center=(0, 0, 0),
+                params=parameters["geometry_params"],
+                lattice=parameters["lattice"]
             ),
             medium=td.Medium(permittivity=1),
-            name="hole"
+            name="crystal"
         )
 
-        structures = [slab, hole]
+        structures = [slab, crystal]
 
         num_dipoles = 7
         num_monitors = 2
@@ -783,16 +786,16 @@ class Cavity_simulation:
                 p["parameters_mirrors_right"]["lattice"],
             )
             and np.allclose(
-                p["parameters_mirrors_left"]["hole_params"],
-                p["parameters_mirrors_right"]["hole_params"],
+                p["parameters_mirrors_left"]["geometry_params"],
+                p["parameters_mirrors_right"]["geometry_params"],
             )
             and np.isclose(
                 p["parameters_taper_left"]["lattice"],
                 p["parameters_taper_right"]["lattice"],
             )
             and np.allclose(
-                p["parameters_taper_left"]["hole_params"],
-                p["parameters_taper_right"]["hole_params"],
+                p["parameters_taper_left"]["geometry_params"],
+                p["parameters_taper_right"]["geometry_params"],
             )
         )
         return params_match
@@ -1408,18 +1411,18 @@ class Cavity_simulation:
 
         positions = self.beam_layout["positions"]
         lattices = self.beam_layout["lattice"]
-        hole_params = self.beam_layout["hole_params"]
+        geometry_params = self.beam_layout["geometry_params"]
 
         if isinstance(positions, list):
             positions = np.array(positions)
         if isinstance(lattices, list):
             lattices = np.array(lattices)
-        if isinstance(hole_params, list):
-            hole_params = np.array(hole_params)
+        if isinstance(geometry_params, list):
+            geometry_params = np.array(geometry_params)
 
-        n_holes = len(positions)
-        indices = np.arange(n_holes)
-        n_params = hole_params.shape[1] if hole_params.ndim > 1 else 1
+        n_crystals = len(positions)
+        indices = np.arange(n_crystals)
+        n_params = geometry_params.shape[1] if geometry_params.ndim > 1 else 1
         n_plots = 2 + n_params
 
         n_lt = self.n_cells["N_left_taper"]
@@ -1445,7 +1448,7 @@ class Cavity_simulation:
         axes[0].plot(indices, positions, ".-", color="steelblue",
                      markersize=4, linewidth=0.8)
         axes[0].set_ylabel("x position (µm)")
-        axes[0].set_title(f"Hole positions ({n_holes} holes)")
+        axes[0].set_title(f"Crystal positions ({n_crystals} crystals)")
         axes[0].axhline(0, color="red", ls="--", alpha=0.3,
                         label="cavity center")
         axes[0].legend(fontsize=8)
@@ -1453,18 +1456,18 @@ class Cavity_simulation:
         axes[1].plot(indices, lattices, ".-", color="coral",
                      markersize=4, linewidth=0.8)
         axes[1].set_ylabel("Lattice constant (µm)")
-        axes[1].set_title("Lattice constant vs hole index")
+        axes[1].set_title("Lattice constant vs crystal index")
 
-        if hole_params.ndim == 1:
-            hole_params = hole_params[:, np.newaxis]
+        if geometry_params.ndim == 1:
+            geometry_params = geometry_params[:, np.newaxis]
         for j in range(n_params):
             ax = axes[2 + j]
-            ax.plot(indices, hole_params[:, j], ".-", color="black",
+            ax.plot(indices, geometry_params[:, j], ".-", color="black",
                     markersize=4, linewidth=0.8)
             ax.set_ylabel(f"param_{j} (µm)")
-            ax.set_title(f"param_{j} vs hole index")
+            ax.set_title(f"param_{j} vs crystal index")
 
-        axes[-1].set_xlabel("Hole index")
+        axes[-1].set_xlabel("Crystal index")
         plt.tight_layout()
         plt.show()
 

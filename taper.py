@@ -23,7 +23,7 @@ class Taper:
         t = np.linspace(0, 1, self.n_taper)
 
         taper_lat = self.parameters_mirror["lattice"] + t * (self.parameters_taper["lattice"] - self.parameters_mirror["lattice"])
-        taper_par = np.array([self.parameters_mirror["hole_params"] + ti * (self.parameters_taper["hole_params"] - self.parameters_mirror["hole_params"]) for ti in t])
+        taper_par = np.array([self.parameters_mirror["geometry_params"] + ti * (self.parameters_taper["geometry_params"] - self.parameters_mirror["geometry_params"]) for ti in t])
 
         taper_pos = np.zeros(self.n_taper)
         for i in range(1, self.n_taper):
@@ -33,7 +33,7 @@ class Taper:
         taper_layout = {
             "positions": taper_pos,
             "lattice": taper_lat,
-            "hole_params": taper_par,
+            "geometry_params": taper_par,
         }
 
         return taper_layout

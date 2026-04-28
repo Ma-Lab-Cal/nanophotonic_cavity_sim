@@ -12,7 +12,7 @@ from defect import Defect
 from simulation import Cavity_simulation, _make_serializable
 from taper import Taper
 from mirror import Mirror
-from hole import hole_polygon_2d
+from crystal import crystal_polygon_2d
 
 class Cavity:
     """Photonic crystal nanobeam cavity assembled from tapers, mirrors, and a defect."""
@@ -32,11 +32,11 @@ class Cavity:
         }
 
         self.parameters = parameters or {
-            "parameters_taper_left":    {"lattice": 0.40, "hole_params": np.array([0.12, 0.12])},
-            "parameters_mirrors_left":  {"lattice": 0.54, "hole_params": np.array([0.18, 0.18])},
-            "parameters_defect":        {"lattice": 0.4, "hole_params": np.array([0.1, 0.1])},
-            "parameters_mirrors_right": {"lattice": 0.54, "hole_params": np.array([0.18, 0.18])},
-            "parameters_taper_right":   {"lattice": 0.40, "hole_params": np.array([0.12, 0.12])},
+            "parameters_taper_left":    {"lattice": 0.40, "geometry_params": np.array([0.12, 0.12])},
+            "parameters_mirrors_left":  {"lattice": 0.54, "geometry_params": np.array([0.18, 0.18])},
+            "parameters_defect":        {"lattice": 0.40, "geometry_params": np.array([0.1, 0.1])},
+            "parameters_mirrors_right": {"lattice": 0.54, "geometry_params": np.array([0.18, 0.18])},
+            "parameters_taper_right":   {"lattice": 0.40, "geometry_params": np.array([0.12, 0.12])},
         }
 
         self.context = context or {
@@ -108,7 +108,7 @@ class Cavity:
         pos_defect_left = d_layout["positions"][0]
         pos_defect_right = d_layout["positions"][-1]
 
-        # Mirror anchors (first hole is adjacent to defect)
+        # Mirror anchors (first crystal is adjacent to defect)
         start_ml = pos_defect_left - (d_layout["lattice"][0] + ml_layout["lattice"][0]) / 2
         end_ml = start_ml - ml_layout["positions"][-1]
 
@@ -135,17 +135,17 @@ class Cavity:
             tr_layout["lattice"],
         ]
         sections_params = [
-            tl_layout["hole_params"][::-1],
-            ml_layout["hole_params"][::-1],
-            d_layout["hole_params"],
-            mr_layout["hole_params"],
-            tr_layout["hole_params"],
+            tl_layout["geometry_params"][::-1],
+            ml_layout["geometry_params"][::-1],
+            d_layout["geometry_params"],
+            mr_layout["geometry_params"],
+            tr_layout["geometry_params"],
         ]
 
         return {
             "positions": np.concatenate(sections_pos),
             "lattice": np.concatenate(sections_lat),
-            "hole_params": np.concatenate(sections_params),
+            "geometry_params": np.concatenate(sections_params),
         }
         
 
@@ -187,9 +187,9 @@ class Cavity:
     @staticmethod
     def _ensure_numpy_params(parameters):
         for region in parameters.values():
-            if isinstance(region, dict) and "hole_params" in region:
-                if isinstance(region["hole_params"], list):
-                    region["hole_params"] = np.array(region["hole_params"])
+            if isinstance(region, dict) and "crystal_params" in region:
+                if isinstance(region["crystal_params"], list):
+                    region["crystal_params"] = np.array(region["crystal_params"])
         return parameters
 
     @classmethod
@@ -238,11 +238,11 @@ class Cavity:
     # ──────────────────────────────────────────────────────────────────
  
     def render_gdsfactory(self, name=None, layer=(1, 0),
-                          hole_layer=(2, 0), label_layer=(1, 2),
+                          crystal_layer=(2, 0), label_layer=(1, 2),
                           n_pts=128, waveguide_extension=5.0):
         """Export the cavity as a gdsfactory Component.
  
-        The slab is placed on ``layer`` and holes on ``hole_layer``
+        The slab is placed on ``layer`` and crystals on ``crystal_layer``
         so that a boolean subtraction can be applied in the fab flow
         if needed.
  
@@ -252,14 +252,14 @@ class Cavity:
             Component name. Defaults to ``self.get_name()``.
         layer : tuple
             GDS layer for the waveguide slab.
-        hole_layer : tuple
-            GDS layer for the air holes.
+        crystal_layer : tuple
+            GDS layer for the air crystals.
         label_layer : tuple
             GDS layer for the text label.
         n_pts : int
-            Polygon resolution for curved holes.
+            Polygon resolution for curved crystals.
         waveguide_extension : float
-            Extra slab length (µm) beyond the outermost holes.
+            Extra slab length (µm) beyond the outermost crystals.
  
         Returns
         -------
@@ -273,7 +273,7 @@ class Cavity:
  
         positions = np.asarray(self.beam_layout["positions"])
         lattices = np.asarray(self.beam_layout["lattice"])
-        hole_params = np.atleast_2d(self.beam_layout["hole_params"])
+        geometry_params = np.atleast_2d(self.beam_layout["geometry_params"])
         width = self.context["width"]
         geometry = self.context["geometry"]
  
@@ -296,11 +296,11 @@ class Cavity:
             layer=layer,
         )
  
-        # ── Air holes ─────────────────────────────────────────────
+        # ── crystals ─────────────────────────────────────────────
         for i, x_pos in enumerate(positions):
-            poly = hole_polygon_2d(geometry, hole_params[i], n_pts=n_pts)
+            poly = crystal_polygon_2d(self.context, geometry_params[i], lattices[i], n_pts=n_pts)
             poly_shifted = poly + np.array([x_pos, 0.0])
-            c.add_polygon(poly_shifted.tolist(), layer=hole_layer)
+            c.add_polygon(poly_shifted.tolist(), layer=crystal_layer)
  
         # ── Ports ─────────────────────────────────────────────────
         c.add_port(

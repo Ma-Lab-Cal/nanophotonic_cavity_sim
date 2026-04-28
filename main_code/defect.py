@@ -40,7 +40,7 @@ class Defect:
         indices = np.arange(1, self.n_half + 1)
 
         lattices = np.array([self.defect_function(parameters_mirror["lattice"], parameters_defect["lattice"], i) for i in indices])
-        params = np.array([self.defect_function(parameters_mirror["hole_params"], parameters_defect["hole_params"], i) for i in indices])
+        params = np.array([self.defect_function(parameters_mirror["geometry_params"], parameters_defect["geometry_params"], i) for i in indices])
         params = np.atleast_2d(params)
 
         positions = np.cumsum(lattices) - lattices / 2
@@ -62,7 +62,7 @@ class Defect:
 
             taper_pos = np.concatenate([l_pos[::-1], [0.0], r_pos])
             taper_lat = np.concatenate([l_lat[::-1], [self.parameters["parameters_defect"]["lattice"]], r_lat])
-            taper_par = np.concatenate([l_par[::-1],  np.atleast_2d(self.parameters["parameters_defect"]["hole_params"]), r_par])
+            taper_par = np.concatenate([l_par[::-1],  np.atleast_2d(self.parameters["parameters_defect"]["geometry_params"]), r_par])
 
         else:
             half_gap = self.central_cavity / 2
@@ -77,7 +77,7 @@ class Defect:
         defect_layout = {
             "positions": taper_pos[order],
             "lattice": taper_lat[order],
-            "hole_params": taper_par[order],
+            "geometry_params": taper_par[order],
         }
 
         return defect_layout

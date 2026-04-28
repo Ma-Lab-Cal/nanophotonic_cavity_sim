@@ -2,7 +2,7 @@ import tidy3d as td
 import numpy as np
 
 
-def hole_polygon_2d(geometry, params, n_pts=128):
+def geometry_polygon_2d(context, params, n_pts=128):
     """Return an (N, 2) array of xy-vertices for a hole centered at the origin.
  
     This is the single source of truth for hole shapes. Both the 3-D
@@ -23,7 +23,9 @@ def hole_polygon_2d(geometry, params, n_pts=128):
     np.ndarray, shape (N, 2)
     """
     hp = np.atleast_1d(params)
- 
+
+    geometry = context["geometry"]
+
     if geometry == "square":
         hx, hy = hp[0] / 2, hp[1] / 2
         return np.array([
@@ -34,22 +36,33 @@ def hole_polygon_2d(geometry, params, n_pts=128):
             [-hx, -hy],
         ])
 
- 
     if geometry == "ellipse":
         theta = np.linspace(0, 2 * np.pi, n_pts, endpoint=True)
         rx, ry = hp[0] / 2, hp[1] / 2
         return np.column_stack([rx * np.cos(theta), ry * np.sin(theta)])
  
+    if geometry == "sawtooth_square":
+        # params: [tooth_w, tooth_h]
+        # Simple rectangle for one tooth
+        tw, th = hp[0], hp[1]
+        return np.array([
+            [-tw/2, 0], [tw/2, 0], [tw/2, th], [-tw/2, th], [-tw/2, 0],
+        ])
+
+
     raise ValueError(f"Unknown geometry: '{geometry}'")
  
  
-def hole_geometry(geometry, hole_center, params, thickness):
+def geometry_tidy(context, hole_center, params):
     """Create a single 3-D Tidy3D hole geometry at the given center.
  
     Uses ``hole_polygon_2d`` for all shapes to keep the geometry
     definition in one place.
     """
-    verts = hole_polygon_2d(geometry, params)
+
+    thickness = context["thickness"]
+
+    verts = geometry_polygon_2d(context, params)
     verts_shifted = verts + np.array([hole_center[0], hole_center[1]])
  
     return td.PolySlab(

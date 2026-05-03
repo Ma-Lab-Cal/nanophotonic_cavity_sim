@@ -8,11 +8,11 @@ try:
 except ImportError:
     gf = None
 
-from defect import Defect
-from simulation import Cavity_simulation, _make_serializable
-from taper import Taper
-from mirror import Mirror
-from crystal import crystal_polygon_2d
+from main_code.defect import Defect
+from main_code.simulation import Cavity_simulation, _make_serializable
+from main_code.taper import Taper
+from main_code.mirror import Mirror
+from main_code.crystal import crystal_polygon_2d
 
 class Cavity:
     """Photonic crystal nanobeam cavity assembled from tapers, mirrors, and a defect."""

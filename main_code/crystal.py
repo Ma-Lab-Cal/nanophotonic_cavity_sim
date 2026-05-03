@@ -1,5 +1,12 @@
 import tidy3d as td
 import numpy as np
+import matplotlib.pyplot as plt
+
+def arc(cx, cy, r, a0, a1, n):
+    angles = np.linspace(a0, a1, n)
+    return np.column_stack([cx + r * np.cos(angles),
+                            cy + r * np.sin(angles)])
+    
 
 def crystal_polygon_2d(context, params, lattice, n_pts=128):
     """Return an (N, 2) array of xy-vertices for a crystal centered at the origin.
@@ -40,15 +47,82 @@ def crystal_polygon_2d(context, params, lattice, n_pts=128):
         rx, ry = hp[0] / 2, hp[1] / 2
         return np.column_stack([rx * np.cos(theta), ry * np.sin(theta)])
  
-    if geometry == "sawtooth_square":
+    if geometry == "sawtooth_rect_intruded":
         # params: [tooth_w, tooth_h]
         # Simple rectangle for one tooth
         tw, th = hp[0], hp[1]
         nw = context["width"]
 
-        return np.array([[-tw/2, nw/2+th], [tw/2, nw/2+th], [tw/2, -nw/2-th], [-tw/2, -nw/2-th]])
+        if tw > lattice or 2 * th > nw:
+            raise ValueError(f"Intruding geometry etched too big! Tooth width: {tw}, and lattice: {lattice}, tooth etched height: {th}, nanobeam width/2: {nw}.")
+        
+        pts = [[-lattice/2, nw/2], [-tw/2, nw/2], [-tw/2, nw/2-th], [tw/2, nw/2-th], [tw/2, nw/2], [lattice/2, nw/2]]
+        verts_top = np.vstack(pts)
+        verts_bot = verts_top.copy()
+        verts_bot[:, 1] *= -1
+        verts_bot = verts_bot[::-1]
+        verts = np.vstack([verts_top, verts_bot])
 
-    if geometry == "sawtooth_round":
+        return verts
+    
+    if geometry == "sawtooth_rect_extruded":
+        # params: [tooth_w, tooth_h]
+        # Simple rectangle for one tooth
+        tw, th = hp[0], hp[1]
+        nw = context["width"]
+
+        if tw > lattice:
+            raise ValueError(f"Extruding geometry too big! Tooth width: {tw}, and lattice: {lattice}.")
+
+        pts = [[-lattice/2, nw/2], [-tw/2, nw/2], [-tw/2, nw/2+th], [tw/2, nw/2+th], [tw/2, nw/2], [lattice/2, nw/2]]
+        verts_top = np.vstack(pts)
+        verts_bot = verts_top.copy()
+        verts_bot[:, 1] *= -1
+        verts_bot = verts_bot[::-1]
+        verts = np.vstack([verts_top, verts_bot])
+
+        return verts
+
+    if geometry == "sawtooth_round_intruded":
+        # params: [tooth_w, tooth_h]
+        # Simple rectangle for one tooth
+        tw, th = hp[0], hp[1]
+        r = hp[2] / 2
+        nw = context["width"]
+
+        quarter = n_pts // 4
+    
+        pts = []
+
+        if tw > lattice or 2 * th > nw:
+            raise ValueError(f"Intruding geometry etched too big! Tooth width: {tw}, and lattice: {lattice}, tooth etched height: {th}, nanobeam width/2: {nw}.")
+        
+        if th >= 2 * r and tw >= 2 * r:
+            pts.append([-lattice/2, nw/2])
+            pts.append(arc(-tw/2 - r,  nw/2 - r, r, np.pi/2, 0, quarter))
+            pts.append(arc(-tw/2 + r,  nw/2 - th + r, r, np.pi, 3*np.pi/2, quarter))
+            pts.append(arc( tw/2 - r,  nw/2 - th + r, r, 3*np.pi/2, 2*np.pi, quarter))
+            pts.append(arc( tw/2 + r, nw/2 - r, r, np.pi, np.pi/2, quarter))
+            pts.append([lattice/2, nw/2])
+        else:
+            r = min(th / 2, tw / 2)
+
+            pts.append([-lattice/2, nw/2])
+            pts.append(arc(-tw/2 - r,  nw/2 - r, r, np.pi/2, 0, quarter))
+            pts.append(arc(-tw/2 + r,  nw/2 - th + r, r, np.pi, 3*np.pi/2, quarter))
+            pts.append(arc( tw/2 - r,  nw/2 - th + r, r, 3*np.pi/2, 2*np.pi, quarter))
+            pts.append(arc( tw/2 + r, nw/2 - r, r, np.pi, np.pi/2, quarter))
+            pts.append([lattice/2, nw/2])
+
+        verts_top = np.vstack(pts)
+        verts_bot = verts_top.copy()
+        verts_bot[:, 1] *= -1
+        verts_bot = verts_bot[::-1]
+        verts = np.vstack([verts_top, verts_bot])
+
+        return verts
+    
+    if geometry == "sawtooth_round_extruded":
         # params: [tooth_w, tooth_h, fillet_diameter]
         tw, th = hp[0], hp[1]
         r = hp[2] / 2
@@ -56,27 +130,16 @@ def crystal_polygon_2d(context, params, lattice, n_pts=128):
 
         quarter = n_pts // 4
     
-        def arc(cx, cy, r, a0, a1, n):
-            angles = np.linspace(a0, a1, n)
-            return np.column_stack([cx + r * np.cos(angles),
-                                    cy + r * np.sin(angles)])
-    
         pts = []
 
-        check_h = th - 2 * r
-        check_w = tw - 2 * r
+        if tw > lattice:
+            raise ValueError(f"Extruding geometry too big! Tooth width: {tw}, and lattice: {lattice}.")
 
-        if check_h >= 0 and check_w >= 0:
-
+        if th >= 2 * r and tw >= 2 * r:
             pts.append([-lattice/2, nw/2])
-
-            # Bottom-left: concave fillet — 3π/2 → 2π
             pts.append(arc(-tw/2 - r, nw/2 + r, r, 3*np.pi/2, 2*np.pi, quarter))
-            # Top-left: convex round — π → π/2
             pts.append(arc(-tw/2 + r, nw/2 + th - r, r, np.pi, np.pi/2, quarter))
-            # Top-right: convex round — π/2 → 0
             pts.append(arc(tw/2 - r, nw/2 + th - r, r, np.pi/2, 0, quarter))
-            # Bottom-right: concave fillet — π → 3π/2
             pts.append(arc(tw/2 + r, nw/2 + r, r, np.pi, 3*np.pi/2, quarter))
             pts.append([lattice/2, nw/2])
 
@@ -84,14 +147,9 @@ def crystal_polygon_2d(context, params, lattice, n_pts=128):
             r = min(th / 2, tw / 2)
 
             pts.append([-lattice/2, nw/2])
-
-            # Bottom-left: concave fillet — 3π/2 → 2π
             pts.append(arc(-tw/2 - r, nw/2 + r, r, 3*np.pi/2, 2*np.pi, quarter))
-            # Top-left: convex round — π → π/2
             pts.append(arc(-tw/2 + r, nw/2 + th - r, r, np.pi, np.pi/2, quarter))
-            # Top-right: convex round — π/2 → 0
             pts.append(arc(tw/2 - r, nw/2 + th - r, r, np.pi/2, 0, quarter))
-            # Bottom-right: concave fillet — π → 3π/2
             pts.append(arc(tw/2 + r, nw/2 + r, r, np.pi, 3*np.pi/2, quarter))
             pts.append([lattice/2, nw/2])
 
@@ -100,6 +158,8 @@ def crystal_polygon_2d(context, params, lattice, n_pts=128):
         verts_bot[:, 1] *= -1
         verts_bot = verts_bot[::-1]
         verts = np.vstack([verts_top, verts_bot])
+        verts = np.vstack([verts, verts[0]]) 
+
         return verts
 
 

@@ -14,7 +14,7 @@ from tidy3d.plugins.mode import ModeSolver
 
 from scipy.constants import hbar, pi, epsilon_0, c, h
 
-from crystal import crystal_tidy
+from main_code.crystal import crystal_tidy
 
 C0 = td.constants.C_0           # speed of light in vacuum (µm/s)
 C0_m = td.constants.C_0 * 1e-6  # speed of light in vacuum (m/s)
@@ -467,46 +467,58 @@ class Cavity_simulation:
     # ──────────────────────────────────────────────────────────────────
 
     def _build_nanobeam(self):
-        """Build waveguide slab + crystals as Tidy3D Structures."""
-        geometry_wvg = td.PolySlab(
-            vertices=[
-                [-2 * self.sim_size[0],  self.context["width"] / 2],
-                [ 2 * self.sim_size[0],  self.context["width"] / 2],
-                [ 2 * self.sim_size[0], -self.context["width"] / 2],
-                [-2 * self.sim_size[0], -self.context["width"] / 2],
-            ],
-            axis=2,
-            slab_bounds=(
-                -self.context["thickness"] / 2,
-                 self.context["thickness"] / 2,
-            ),
-            sidewall_angle=self.context["sidewall_angle"],
-        )
-        waveguide = td.Structure(
-            geometry=geometry_wvg,
-            medium=self.nanobeam_medium,
-            name="Nanobeam",
-        )
+        positions = np.array(self.beam_layout["positions"])
+        lattices = np.array(self.beam_layout["lattice"])
+        thickness = self.context["thickness"]
+        width = self.context["width"]
+
+        is_hole = self.context["geometry"] in ("ellipse", "rectangle")
 
         crystal_geometries = [
-            crystal_tidy(
-                self.context,
-                (x, 0, 0),
-                self.beam_layout["geometry_params"][i],
-                self.beam_layout["lattice"][i] 
-            )
-            for i, x in enumerate(self.beam_layout["positions"])
+            crystal_tidy(self.context, (x, 0, 0),
+                        self.beam_layout["geometry_params"][i],
+                        self.beam_layout["lattice"][i])
+            for i, x in enumerate(positions)
         ]
-
-        is_hole = self.context["geometry"] == "ellipse" or self.context["geometry"] == "rectangle"
 
         crystals = td.Structure(
             geometry=td.GeometryGroup(geometries=crystal_geometries),
             medium=td.Medium(permittivity=1) if is_hole else self.nanobeam_medium,
             name="Nanobeam_crystals",
         )
-        
-        return [waveguide, crystals]
+
+        if is_hole:
+            wvg_geom = td.PolySlab(
+                vertices=[[-2*self.sim_size[0], width/2], 
+                          [2*self.sim_size[0], width/2],
+                          [2*self.sim_size[0], -width/2], 
+                          [-2*self.sim_size[0], -width/2]],
+                axis=2, slab_bounds=(-thickness/2, thickness/2),
+                sidewall_angle=self.context["sidewall_angle"],
+            )
+            waveguide = td.Structure(geometry=wvg_geom, medium=self.nanobeam_medium, name="Nanobeam")
+            return [waveguide, crystals]
+
+        else:
+            # Unit-cell: waveguide only outside the crystal region
+            crystal_xmin = positions[0]  - lattices[0] / 2
+            crystal_xmax = positions[-1] + lattices[-1] / 2
+
+            left_geom = td.PolySlab(
+                vertices=[[-2*self.sim_size[0], width/2], 
+                          [crystal_xmin, width/2],
+                          [crystal_xmin, -width/2], 
+                          [-2*self.sim_size[0], -width/2]],
+                axis=2, slab_bounds=(-thickness/2, thickness/2))
+            right_geom = td.PolySlab(
+                vertices=[[crystal_xmax, width/2], 
+                          [2*self.sim_size[0], width/2],
+                          [2*self.sim_size[0], -width/2], 
+                          [crystal_xmax, -width/2]],
+                axis=2, slab_bounds=(-thickness/2, thickness/2))
+            return [td.Structure(geometry=left_geom,  medium=self.nanobeam_medium, name="Nanobeam_left"),
+                    td.Structure(geometry=right_geom, medium=self.nanobeam_medium, name="Nanobeam_right"),
+                    crystals]
 
     # ──────────────────────────────────────────────────────────────────
     #  Bandstructure

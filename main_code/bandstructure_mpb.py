@@ -113,7 +113,7 @@ class BandStructureSim:
             self.lattice = mp.Lattice(size=mp.Vector3(1, self.factor_y*self.Ly_norm, self.factor_z*self.t_norm),basis1=mp.Vector3(1, 0, 0))
             return [slab, hole]
         
-        elif self.geometry_type == "sawtooth_rect":
+        elif self.geometry_type == "sawtooth_rect_extruded":
             # Central beam (same as slab)
 
             tooth_w = geometry_params_norm[0]  # width along x
@@ -134,8 +134,30 @@ class BandStructureSim:
 
             self.lattice = mp.Lattice(size=mp.Vector3(1, self.factor_y*(self.Ly_norm+2*tooth_h), self.factor_z*self.t_norm), basis1=mp.Vector3(1, 0, 0))
             return [slab, top_tooth, bot_tooth]
+        
+        elif self.geometry_type == "sawtooth_rect_intruded":
+            # Central beam (same as slab)
 
-        elif self.geometry_type == "sawtooth_round":
+            tooth_w = geometry_params_norm[0]  # width along x
+            tooth_h = geometry_params_norm[1]  # height protruding along y
+
+            # Top tooth: centered at y = +Ly_norm/2 + tooth_h/2
+            top_tooth = mp.Block(
+                material=mp.air,
+                center=mp.Vector3(0, self.Ly_norm / 2 - tooth_h / 2, 0),
+                size=mp.Vector3(tooth_w, tooth_h, self.t_norm),
+            )
+            # Bottom tooth: centered at y = -Ly_norm/2 - tooth_h/2
+            bot_tooth = mp.Block(
+                material=mp.air,
+                center=mp.Vector3(0, -self.Ly_norm / 2 + tooth_h / 2, 0),
+                size=mp.Vector3(tooth_w, tooth_h, self.t_norm),
+            )
+
+            self.lattice = mp.Lattice(size=mp.Vector3(1, self.factor_y*(self.Ly_norm+2*tooth_h), self.factor_z*self.t_norm), basis1=mp.Vector3(1, 0, 0))
+            return [slab, top_tooth, bot_tooth]
+
+        elif self.geometry_type == "sawtooth_round_extruded":
             tooth_w = geometry_params_norm[0]
             tooth_h = geometry_params_norm[1]
             r       = geometry_params_norm[2] / 2
@@ -147,7 +169,7 @@ class BandStructureSim:
                 print(f"Adjusting radius to {r:.3f}.")
 
             n_pts   = 32        # points per quarter-arc
-            lattice = self.Lx  # or whatever your lattice constant variable is
+            lattice = 1   # or whatever your lattice constant variable is
 
             def arc(cx, cy, r, a0, a1, n):
                 angles = np.linspace(a0, a1, n)
@@ -158,7 +180,7 @@ class BandStructureSim:
             pts = []
 
             pts.append([-lattice / 2,  nw / 2])
-            pts.append(arc(-tooth_w/2 - r,  nw/2 + r,          r, 3*np.pi/2, 2*np.pi, n_pts))  # concave fillet BL
+            pts.append(arc(-tooth_w/2 - r,  nw/2 + r,           r, 3*np.pi/2, 2*np.pi, n_pts))  # concave fillet BL
             pts.append(arc(-tooth_w/2 + r,  nw/2 + tooth_h - r, r, np.pi,     np.pi/2, n_pts))  # convex round TL
             pts.append(arc( tooth_w/2 - r,  nw/2 + tooth_h - r, r, np.pi/2,   0,       n_pts))  # convex round TR
             pts.append(arc( tooth_w/2 + r,  nw/2 + r,           r, np.pi,     3*np.pi/2, n_pts)) # concave fillet BR
@@ -187,6 +209,59 @@ class BandStructureSim:
 
             self.lattice = mp.Lattice(size=mp.Vector3(1, self.factor_y*(self.Ly_norm+2*tooth_h), self.factor_z*self.t_norm), basis1=mp.Vector3(1, 0, 0))
             return geom
+        
+        elif self.geometry_type == "sawtooth_round_intruded":
+            tooth_w = geometry_params_norm[0]
+            tooth_h = geometry_params_norm[1]
+            r       = geometry_params_norm[2] / 2
+
+            check_h = tooth_h - 2 * r
+            check_w = tooth_w - 2 * r
+            if not (check_h >= 0 and check_w >= 0):
+                r = min(tooth_h / 2, tooth_w / 2)
+                print(f"Adjusting radius to {r:.3f}.")
+
+            n_pts   = 32        # points per quarter-arc
+            lattice = 1  # or whatever your lattice constant variable is
+
+            def arc(cx, cy, r, a0, a1, n):
+                angles = np.linspace(a0, a1, n)
+                return np.column_stack([cx + r * np.cos(angles),
+                                        cy + r * np.sin(angles)])
+
+            nw = self.Ly_norm
+            pts = []
+
+            pts.append([-lattice/2, nw/2])
+            pts.append(arc(-tooth_w/2 - r,  nw/2 - r, r, np.pi/2, 0, n_pts))
+            pts.append(arc(-tooth_w/2 + r,  nw/2 - tooth_h + r, r, np.pi, 3*np.pi/2, n_pts))
+            pts.append(arc( tooth_w/2 - r,  nw/2 - tooth_h + r, r, 3*np.pi/2, 2*np.pi, n_pts))
+            pts.append(arc( tooth_w/2 + r, nw/2 - r, r, np.pi, np.pi/2, n_pts))
+            pts.append([lattice/2, nw/2])
+
+            verts_top = np.vstack(pts)
+            verts_bot = verts_top.copy()
+            verts_bot[:, 1] *= -1
+            verts_bot = verts_bot[::-1]
+
+            all_verts = np.vstack([verts_top, verts_bot])
+
+            # mp.Prism takes a list of Vector3 in the xy-plane, extruded along z
+            prism_verts = [mp.Vector3(x, y, 0) for x, y in all_verts]
+
+            geom = [
+                mp.Prism(
+                    vertices=prism_verts,
+                    height=self.t_norm,
+                    axis=mp.Vector3(0, 0, 1),
+                    center=mp.Vector3(0, 0, 0),
+                    material=mat,
+                )
+            ]
+
+            self.lattice = mp.Lattice(size=mp.Vector3(1, self.factor_y*(self.Ly_norm+2*tooth_h), self.factor_z*self.t_norm), basis1=mp.Vector3(1, 0, 0))
+            return geom
+        
         else:
             raise ValueError(f"Unknown geometry '{self.geometry_type}'.")
 

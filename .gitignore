@@ -1,2 +1,16 @@
+# simulation outputs / large data
 *.hdf5
 *.gds
+invDesResults/
+cavities_780/
+bandstructure/
+simulation_data.hdf5
+
+# literature PDFs (copyrighted; keep local only)
+literature/
+
+# python / tooling cruft
+__pycache__/
+*.pyc
+.pytest_cache/
+.claude/

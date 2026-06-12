@@ -221,6 +221,22 @@ class Report:
                     r.cell(str(c))
         self.pdf.ln(2)
 
+    def table_wide(self, headers, rows):
+        """Table with a label column plus N equal data columns."""
+        self.pdf.set_font("dejavu", "", 8.5)
+        n_data = len(headers) - 1
+        widths = [30] + [18] * n_data
+        with self.pdf.table(text_align="CENTER", line_height=5.2,
+                            col_widths=widths) as table:
+            hr = table.row()
+            for h in headers:
+                hr.cell(h)
+            for row in rows:
+                r = table.row()
+                for c in row:
+                    r.cell(str(c))
+        self.pdf.ln(2)
+
 
 def build_pdf(rec, baseline, bands):
     final = rec[-1]["perf"]["diagnostic"]

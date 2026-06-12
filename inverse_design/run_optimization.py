@@ -30,8 +30,10 @@ from inverse_design.optimizer import InverseDesigner, run_with_retries
 from inverse_design.parametrization import CavityParametrization
 
 
-def evaluate_baseline(out_dir: Path, force=False) -> dict:
-    """Stage 0: baseline perf + proxy calibration constant c0."""
+def evaluate_baseline(out_dir: Path, force=False, par=None,
+                      seed_parameters=None) -> dict:
+    """Stage 0: design_1 baseline perf, seed perf (if seeded), and the proxy
+    calibration constant c0 (calibrated on whatever design theta0 encodes)."""
     from tidy3d import web
     from inverse_design import diagnostics, objective
     from inverse_design.builder import build_forward_simulation
@@ -76,11 +78,32 @@ def evaluate_baseline(out_dir: Path, force=False) -> dict:
     baseline_perf = diagnostics.perf_from_simulation(sim_obj)
     print("[stage 0] baseline perf:", json.dumps(baseline_perf, indent=1))
 
+    # 1b) seed verification, if optimizing from a non-design_1 seed
+    seed_perf = None
+    if seed_parameters is not None:
+        from main_code.cavity import Cavity
+        print("[stage 0] verifying the seed design...")
+        cav = Cavity(n_cells=dict(par.n_cells), parameters=seed_parameters,
+                     context=dict(cfg.BASELINE_CONTEXT))
+        cav.build_simulation(grid_size_override=(0.01, 0.01, 0.01),
+                             num_modes=1, plot=False)
+        seed_sim = cav.simulation
+        seed_sim.sim = seed_sim.sim.updated_copy(shutoff=0.0)
+        run_with_retries(
+            lambda: seed_sim.run(directory=str(out_dir / "verification"),
+                                 save_name="seed_design"),
+            label="seed verification")
+        seed_perf = diagnostics.perf_from_simulation(seed_sim)
+        print("[stage 0] seed perf:", json.dumps(seed_perf, indent=1))
+
     # 2) forward frequency-domain sim of theta0 -> calibration c0
+    # (theta0 encodes the seed when one is given, else design_1)
     print("[stage 0] running forward (frequency-domain) sim of theta0...")
-    par = CavityParametrization()
-    theta0 = par.init_theta_from_baseline()
-    sim_cfg = cfg.SimConfig(f_center=baseline_perf["f_res_Hz"], f_window=2e12)
+    par = par or CavityParametrization()
+    theta0 = par.init_theta_from_baseline(parameters=seed_parameters,
+                                          n_cells=par.n_cells)
+    calib_perf = seed_perf if seed_perf is not None else baseline_perf
+    sim_cfg = cfg.SimConfig(f_center=calib_perf["f_res_Hz"], f_window=2e12)
     sim = build_forward_simulation(theta0, par, sim_cfg)
     sim_data = run_with_retries(
         lambda: web.run(sim, task_name="invdes_stage0_theta0",
@@ -89,10 +112,10 @@ def evaluate_baseline(out_dir: Path, force=False) -> dict:
     metrics = objective.physics_metrics(sim_data, sim_cfg)
     C_raw0 = float(np.asarray(metrics["C_raw"]))
     beta0 = float(np.asarray(metrics["beta"]))
-    c0 = baseline_perf["C_atom"] / max(C_raw0, 1e-30)
+    c0 = calib_perf["C_atom"] / max(C_raw0, 1e-30)
 
-    result = {"baseline_perf": baseline_perf, "C_raw0": C_raw0,
-              "beta0": beta0, "c0": c0,
+    result = {"baseline_perf": baseline_perf, "seed_perf": seed_perf,
+              "C_raw0": C_raw0, "beta0": beta0, "c0": c0,
               "f_hat0": float(np.asarray(metrics["f_hat"]))}
     with open(cache, "w") as f:
         json.dump(result, f, indent=1)
@@ -148,6 +171,10 @@ def main():
                     help="override Stage A iteration count (full mode)")
     ap.add_argument("--iters-b", type=int, default=None,
                     help="override Stage B iteration count (full mode)")
+    ap.add_argument("--seed-file", default=None,
+                    help="JSON file with {'n_cells', 'parameters'} (legacy "
+                         "section format) to seed the optimization from "
+                         "instead of design_1")
     args = ap.parse_args()
 
     cfg.ensure_api_key()
@@ -165,11 +192,26 @@ def main():
     out_dir = run_cfg.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    seed_parameters, par = None, None
+    if args.seed_file:
+        with open(args.seed_file) as f:
+            seed = json.load(f)
+        seed_parameters = {
+            k: {"lattice": float(v["lattice"]),
+                "geometry_params": np.asarray(v["geometry_params"], dtype=float)}
+            for k, v in seed["parameters"].items()}
+        par = CavityParametrization(n_cells=seed["n_cells"])
+        print(f"[seed] optimizing from {args.seed_file} "
+              f"({sum(seed['n_cells'].values())} holes)")
+
     t0 = time.time()
-    stage0 = evaluate_baseline(out_dir, force=False)
-    designer = InverseDesigner(run_cfg, c0=stage0["c0"],
-                               baseline_perf=stage0["baseline_perf"])
-    designer.f_center = stage0["baseline_perf"]["f_res_Hz"]
+    stage0 = evaluate_baseline(out_dir, force=False, par=par,
+                               seed_parameters=seed_parameters)
+    designer = InverseDesigner(run_cfg, par=par, c0=stage0["c0"],
+                               baseline_perf=stage0["baseline_perf"],
+                               init_parameters=seed_parameters)
+    calib = stage0.get("seed_perf") or stage0["baseline_perf"]
+    designer.f_center = calib["f_res_Hz"]
 
     if args.resume:
         designer.resume()

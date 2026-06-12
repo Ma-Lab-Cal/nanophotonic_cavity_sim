@@ -81,7 +81,10 @@ def run_with_retries(fn, n_retries=3, backoff_s=30.0, label="web.run"):
 
 class InverseDesigner:
     def __init__(self, run_cfg: cfg.RunConfig, par: CavityParametrization = None,
-                 c0: float = 1.0, baseline_perf: dict = None, verbose=True):
+                 c0: float = 1.0, baseline_perf: dict = None, verbose=True,
+                 init_parameters: dict = None):
+        """init_parameters: legacy-format section dict to seed theta from
+        (defaults to the design_1 baseline)."""
         self.run_cfg = run_cfg
         self.par = par or CavityParametrization()
         self.c0 = float(c0)
@@ -92,7 +95,8 @@ class InverseDesigner:
         self.ckpt_dir = self.out_dir / "checkpoints"
         self.ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-        self.theta = self.par.init_theta_from_baseline()
+        self.theta = self.par.init_theta_from_baseline(
+            parameters=init_parameters, n_cells=self.par.n_cells)
         self.shapes = {k: np.asarray(self.theta[k]).shape for k in _BLOCKS}
         self.record = []
         self.credits_spent = 0.0

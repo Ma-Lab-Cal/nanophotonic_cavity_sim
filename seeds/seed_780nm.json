@@ -1,0 +1,47 @@
+{
+ "n_cells": {
+  "N_left_taper": 5,
+  "N_left_mirror": 4,
+  "N_defect": 40,
+  "N_right_mirror": 30,
+  "N_right_taper": 1
+ },
+ "parameters": {
+  "parameters_taper_left": {
+   "lattice": 0.2767,
+   "geometry_params": [
+    0.04,
+    0.04
+   ]
+  },
+  "parameters_mirrors_left": {
+   "lattice": 0.3365,
+   "geometry_params": [
+    0.2,
+    0.3
+   ]
+  },
+  "parameters_defect": {
+   "lattice": 0.2968,
+   "geometry_params": [
+    0.2,
+    0.2
+   ]
+  },
+  "parameters_mirrors_right": {
+   "lattice": 0.3365,
+   "geometry_params": [
+    0.2,
+    0.3
+   ]
+  },
+  "parameters_taper_right": {
+   "lattice": 0.2767,
+   "geometry_params": [
+    0.04,
+    0.04
+   ]
+  }
+ },
+ "design_notes": "v2: crystal lattices rescaled x0.99249 to pull f_res 381.34->384.23 THz; output mirror 7->4 cells for overcoupling (Q_-x was 1.4e8 at N=7, ~10x per cell; target Q_wg~1e5 vs Q_scat~0.9e6 -> beta~0.85). Mirror gap 356-412 THz; defect dielectric edge ~387->390 THz after rescale; Bragg taper a_last=276.7nm kept (waveguide condition)."
+}

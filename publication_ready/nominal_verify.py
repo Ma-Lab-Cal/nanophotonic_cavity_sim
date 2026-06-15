@@ -58,7 +58,9 @@ def export_fields(sim_obj) -> dict:
     for tag, mname in _PLANE_MONITORS.items():
         if mname not in md:
             continue
-        res = _plane_arrays(md[mname])
+        # sim_data[name] applies symmetry expansion (full y,z extent);
+        # .monitor_data[name] would only hold the y>=0 / z>=0 half.
+        res = _plane_arrays(sim_obj.sim_data[mname])
         if res is None:
             continue
         Eabs, Ey, dims, axes = res

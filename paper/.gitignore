@@ -1,0 +1,13 @@
+# LaTeX build artifacts (the compiled main.pdf IS tracked as a reference)
+*.aux
+*.log
+*.out
+*.blg
+*.bbl
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.toc
+*.nav
+*.snm
+*Notes.bib

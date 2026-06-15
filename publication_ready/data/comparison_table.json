@@ -1,0 +1,93 @@
+{
+ "convention": {
+  "schema_version": "1.0",
+  "metrics_path": "inverse_design.diagnostics.perf_from_simulation",
+  "f_target_Hz": 384230587728663.3,
+  "f_target_THz": 384.2305877286633,
+  "gamma_2pi_MHz": 6.0666,
+  "fiber_efficiency": 0.99,
+  "dipole_moment_Cm": 3.58e-29,
+  "g_definition": "g = d*sqrt(omega*u_pol/(2*hbar*eps0*Integral[eps|E|^2]dV)), reported as g/2pi in Hz",
+  "C_definition": "C = 4 g^2 / (kappa_tot * gamma)",
+  "eta_definition": "eta = beta * C/(C+1) * eta_fiber",
+  "beta_definition": "beta = kappa(-x) / kappa_directional(total)",
+  "Vmode_definition": "V = Integral[eps|E|^2]dV / max(eps|E|^2), in (lambda/n)^3, NO legacy symmetry factor",
+  "kappa_tot": "linewidth kappa = 2*pi*f_res/Q (ResonanceFinder ringdown)",
+  "output_face": "-x",
+  "atom_offsets_nm": [
+   200,
+   250,
+   300
+  ],
+  "thickness_um": 0.15,
+  "width_um": 0.5,
+  "scope": "EM-derived scalar proxies; not a full cavity-QED simulation"
+ },
+ "rows": [
+  {
+   "design": "design_1",
+   "f_res_THz": 385.2411147100438,
+   "detuning_GHz": 1010.5269813805,
+   "eta_atom": 0.0826960290484849,
+   "beta_wg": 0.08746721783671474,
+   "Q": 1137.0497478294185,
+   "kappa_tot_2pi_GHz": 338.8076163294116,
+   "C_atom": 21.223065965936897,
+   "Vmode_lambda_n3": 0.6635400839497212,
+   "g_2pi_GHz_at_250nm": 3.3023517404409812,
+   "source": "/home/ma-lab/Desktop/atomTrap/invDesResults/full_seed/verification/baseline_design1.hdf5"
+  },
+  {
+   "design": "invDes(design_1)",
+   "f_res_THz": 383.93901459490814,
+   "detuning_GHz": -291.5731337551875,
+   "eta_atom": 0.2776680741854072,
+   "beta_wg": 0.2866987621207299,
+   "Q": 1778.0247750958802,
+   "kappa_tot_2pi_GHz": 215.93569446983898,
+   "C_atom": 45.04892516424298,
+   "Vmode_lambda_n3": 0.6099715059055592,
+   "g_2pi_GHz_at_250nm": 3.8410248803997074,
+   "source": "/home/ma-lab/Desktop/atomTrap/invDesResults/full/verification/final_design.hdf5"
+  },
+  {
+   "design": "seed",
+   "f_res_THz": 383.6151300026418,
+   "detuning_GHz": -615.4577260215,
+   "eta_atom": 0.08762603174452503,
+   "beta_wg": 0.08851133106962078,
+   "Q": 27116903.921507288,
+   "kappa_tot_2pi_GHz": 0.014146715683805787,
+   "C_atom": 471071.2287039963,
+   "Vmode_lambda_n3": 0.8180443889643573,
+   "g_2pi_GHz_at_250nm": 3.179170261680557,
+   "source": "/home/ma-lab/Desktop/atomTrap/invDesResults/full_seed/verification/seed_design.hdf5"
+  },
+  {
+   "design": "invDes(seed)",
+   "f_res_THz": 384.53412429235425,
+   "detuning_GHz": 303.5365636909375,
+   "eta_atom": 0.8338070372556441,
+   "beta_wg": 0.8753784945772534,
+   "Q": 12600.430166379303,
+   "kappa_tot_2pi_GHz": 30.517539418485505,
+   "C_atom": 25.407257032328943,
+   "Vmode_lambda_n3": 0.8581345693383572,
+   "g_2pi_GHz_at_250nm": 1.0844170378672278,
+   "source": "/home/ma-lab/Desktop/atomTrap/invDesResults/full_seed/verification/final_design.hdf5"
+  },
+  {
+   "design": "final",
+   "f_res_THz": 384.23059416839163,
+   "detuning_GHz": 0.0064397283125,
+   "eta_atom": 0.8422820442081338,
+   "beta_wg": 0.8855922559350748,
+   "Q": 11990.132458280239,
+   "kappa_tot_2pi_GHz": 32.045567094886145,
+   "C_atom": 24.446362544621422,
+   "Vmode_lambda_n3": 0.8742412165180282,
+   "g_2pi_GHz_at_250nm": 1.0900183007413253,
+   "source": "/home/ma-lab/Desktop/atomTrap/publication_ready/verification/final_trimmed.hdf5"
+  }
+ ]
+}

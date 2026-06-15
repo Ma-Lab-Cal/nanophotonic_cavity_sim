@@ -1,0 +1,112 @@
+{
+ "convention": {
+  "schema_version": "1.0",
+  "metrics_path": "inverse_design.diagnostics.perf_from_simulation",
+  "f_target_Hz": 384230587728663.3,
+  "f_target_THz": 384.2305877286633,
+  "gamma_2pi_MHz": 6.0666,
+  "fiber_efficiency": 0.99,
+  "dipole_moment_Cm": 3.58e-29,
+  "g_definition": "g = d*sqrt(omega*u_pol/(2*hbar*eps0*Integral[eps|E|^2]dV)), reported as g/2pi in Hz",
+  "C_definition": "C = 4 g^2 / (kappa_tot * gamma)",
+  "eta_definition": "eta = beta * C/(C+1) * eta_fiber",
+  "beta_definition": "beta = kappa(-x) / kappa_directional(total)",
+  "Vmode_definition": "V = Integral[eps|E|^2]dV / max(eps|E|^2), in (lambda/n)^3, NO legacy symmetry factor",
+  "kappa_tot": "linewidth kappa = 2*pi*f_res/Q (ResonanceFinder ringdown)",
+  "output_face": "-x",
+  "atom_offsets_nm": [
+   200,
+   250,
+   300
+  ],
+  "thickness_um": 0.15,
+  "width_um": 0.5,
+  "scope": "EM-derived scalar proxies; not a full cavity-QED simulation"
+ },
+ "perf": {
+  "f_res_Hz": 384230594168391.6,
+  "Q": 11990.132458280239,
+  "kappa_tot_2pi_GHz": 32.045567094886145,
+  "Vmode_lambda_n3": 0.8742412165180282,
+  "purcell": 1042.207565041331,
+  "Q_directional": {
+   "+x": 8548430.716411276,
+   "-x": 2810.366854681858,
+   "+y": 97351.39729848296,
+   "-y": 97351.39729848296,
+   "+z": 79028.88254430733,
+   "-z": 79028.88254430733,
+   "total": 2488.8391228428673
+  },
+  "beta_wg": 0.8855922559350748,
+  "g_2pi_Hz_at_200nm": 1632844282.5373454,
+  "g_2pi_Hz_at_250nm": 1090018300.7413254,
+  "g_2pi_Hz_at_300nm": 730643506.9124413,
+  "C_atom": 24.446362544621422,
+  "eta_atom": 0.8422820442081338,
+  "gamma_2pi_MHz": 6.0666,
+  "fiber_efficiency": 0.99
+ },
+ "detuning_GHz": 0.0064397283125,
+ "gate": {
+  "passed": true,
+  "tol_hz": 8011391773.721537,
+  "detuning_hz": 6439728.3125,
+  "criteria": {
+   "frequency": true,
+   "beta": true,
+   "eta": true,
+   "C": true,
+   "wg_dominates": true
+  },
+  "reasons": []
+ },
+ "loss_budget": {
+  "kappa_linewidth_2pi_GHz": 32.045567094886145,
+  "kappa_dir_total_2pi_GHz": 154.38145062968377,
+  "kappa_wg_2pi_GHz": 136.71901713767105,
+  "kappa_residual_2pi_GHz": 17.66243349201273,
+  "beta_wg": 0.8855922559350748,
+  "residual_fraction": 0.1144077440649251,
+  "kappa_per_face_2pi_GHz": {
+   "+x": 0.044947500531383584,
+   "-x": 136.71901713767105,
+   "+y": 3.9468421083913823,
+   "-y": 3.9468421083913823,
+   "+z": 4.861900887349302,
+   "-z": 4.861900887349302,
+   "total": 154.38145062968377
+  },
+  "output_face": "-x",
+  "fit_error": 0.003204354738567119,
+  "fit_amplitude": 66453.51452179556,
+  "f_res_Hz": 384230594168391.6,
+  "Q_linewidth": 11990.132458280239
+ },
+ "resonance_spectrum": {
+  "freq_Hz": [
+   384230594168391.6
+  ],
+  "Q": [
+   11990.132458280239
+  ],
+  "amplitude": [
+   66453.51452179556
+  ],
+  "error": [
+   0.003204354738567119
+  ]
+ },
+ "sim_settings": {
+  "run_time_s": 8e-12,
+  "domain_size_um": [
+   29.19631766773187,
+   3.6366472361809046,
+   3.2866472361809045
+  ],
+  "num_grid_cells": 29999808,
+  "pml_num_layers": 12,
+  "grid_min_steps_per_wvl": 15
+ },
+ "design": "final_trimmed"
+}

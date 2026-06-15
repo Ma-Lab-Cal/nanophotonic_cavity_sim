@@ -9,6 +9,12 @@ simulation_data.hdf5
 # literature PDFs (copyrighted; keep local only)
 literature/
 
+# publication_ready: ignore local cloud-sim cache and bulky field dumps
+# (machine-readable csv/json/npz datasets, figures, and scripts ARE tracked)
+publication_ready/verification/
+publication_ready/data/fields_final.npz
+publication_ready/data/competing_modes.npz
+
 # python / tooling cruft
 __pycache__/
 *.pyc

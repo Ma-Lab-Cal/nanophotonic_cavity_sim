@@ -20,7 +20,12 @@ RESULTS_ROOT = REPO_ROOT / "invDesResults"
 # ── Physics constants (Rb D2) ─────────────────────────────────────────────
 C0_UM = 299792458.0 * 1e6        # speed of light (um/s), matches td.constants.C_0
 F_TARGET = C0_UM / 0.780241      # 87Rb D2 line, 780.241 nm -> ~384.23 THz (Hz)
-DIPOLE_MOMENT = 3.58e-29         # C*m, Rb D2 <J=1/2||er||J'=3/2> reduced dipole matrix element (Steck)
+DIPOLE_MOMENT = 3.58e-29         # C*m, Rb D2 <J=1/2||er||J'=3/2> J-REDUCED matrix element (Steck).
+#   This is the reduced element, NOT a transition dipole. No single |F,mF>->|F',mF'>
+#   transition has dipole = DIPOLE_MOMENT; the strongest (the sigma+ cycling line
+#   |2,2>->|3,3>) has |d| = sqrt(1/2)*DIPOLE_MOMENT (verified via I_sat,cyc=1.67 mW/cm^2
+#   and the Wigner-Eckart 6j*3j reductions). Use DIPOLE_MOMENT_CYCLING for couplings.
+DIPOLE_MOMENT_CYCLING = DIPOLE_MOMENT * np.sqrt(0.5)   # = 2.531e-29 C*m, sigma+ cycling transition dipole
 GAMMA_RB = 2 * np.pi * 6.0666e6  # rad/s, Rb D2 natural linewidth (gamma = 2pi*6.07 MHz)
 FIBER_EFFICIENCY = 0.99          # eta_fiber used in eta(r); same default as cooperativity()
 

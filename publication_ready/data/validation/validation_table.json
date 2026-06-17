@@ -35,8 +35,8 @@
    "Q": 12268.419386189194,
    "kappa_tot_2pi_GHz": 31.2936943990653,
    "detuning_GHz": -306.420697690375,
-   "f_res_lorentzian_Hz": 383924161784462.9,
-   "Q_lorentzian": 12261.698507187486,
+   "f_res_demod_Hz": 383924161784462.9,
+   "Q_demod": 12261.698507187486,
    "method_agreement_GHz": 0.0052465100625
   },
   "decay": {
@@ -73,11 +73,13 @@
    "Ex": 0.0,
    "Ey": 506.2970385256598,
    "Ez": 0.0,
-   "polarization_purity": 1.0,
-   "g_2pi_GHz_linear": 1.0232194308920868,
-   "g_2pi_GHz_nearest": 1.006257345354082,
-   "g_2pi_interp_unc_GHz": 0.016962085538004757,
-   "g_2pi_GHz_max": 8.257099098831304,
+   "Ey_energy_fraction": 1.0,
+   "g_2pi_GHz_dipole_aligned_UB": 0.7235253982256346,
+   "g_2pi_GHz_sigma_cycling": 0.5116097154460434,
+   "g_2pi_GHz_linear": 0.7235253982256346,
+   "g_2pi_GHz_nearest": 0.7115313925186451,
+   "g_2pi_interp_unc_GHz": 0.011994005706989526,
+   "g_2pi_GHz_max": 5.838650765712946,
    "clebsch_gordan_table": [
     {
      "name": "|F=2,mF=2>->|F'=3,mF'=3> (sigma+, cycling)",
@@ -102,14 +104,14 @@
    ]
   },
   "cooperativity_efficiency": {
-   "g_2pi_GHz": 1.0232194308920868,
-   "C": 22.059484076000075,
-   "kappa_over_g": 30.583561506237338,
-   "g_over_gamma": 168.66439700855284,
-   "eta_chip_flux": 0.8409027885204529,
-   "eta_with_fiber_flux": 0.8324937606352483,
-   "eta_chip_guided": 0.8388077044033154,
-   "eta_with_fiber_guided": 0.8304196273592822
+   "g_2pi_GHz": 0.7235253982256346,
+   "C": 11.029742038000043,
+   "kappa_over_g": 43.25168746779256,
+   "g_over_gamma": 119.26373886948778,
+   "eta_chip_flux": 0.805951798471615,
+   "eta_with_fiber_flux": 0.7978922804868989,
+   "eta_chip_guided": 0.8039437936995922,
+   "eta_with_fiber_guided": 0.7959043557625963
   },
   "self_consistency": {
    "passed": true,
@@ -120,11 +122,11 @@
     "Vmode_lambda_n3": 0.886790366996297,
     "purcell": 1051.3060526128406,
     "beta_wg": 0.8790225734448576,
-    "g_2pi_Hz_at_200nm": 1536590559.680079,
-    "g_2pi_Hz_at_250nm": 1023219430.8920867,
-    "g_2pi_Hz_at_300nm": 683323625.9019972,
-    "C_atom": 22.059484076000075,
-    "eta_atom": 0.8324937606352483,
+    "g_2pi_Hz_at_200nm": 1086533604.6570163,
+    "g_2pi_Hz_at_250nm": 723525398.2256346,
+    "g_2pi_Hz_at_300nm": 483182769.6202818,
+    "C_atom": 11.029742038000043,
+    "eta_atom": 0.7978922804868989,
     "gamma_2pi_MHz": 6.0666,
     "fiber_efficiency": 0.99
    }
@@ -132,7 +134,7 @@
  },
  "freq_campaign": null,
  "provenance": {
-  "git_commit": "783f634",
+  "git_commit": "bb57a24",
   "tidy3d_version": "2.11.2",
   "python": "3.12.13",
   "f_D2_Hz": 384230587728663.3,

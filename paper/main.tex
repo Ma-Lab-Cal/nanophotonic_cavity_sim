@@ -50,13 +50,14 @@ band-engineered mirror cell; a single conformal in-plane scale then tunes the
 resonance onto the atomic line. The absolute resonance is pinned to the D2 line
 to within one cavity linewidth by a grid-offset-averaged, mesh-converged
 frequency analysis. From the classical electromagnetic fields we extract a
-chip-level interface efficiency $\eta_\mathrm{chip}=\beta\,C/(C{+}1)=0.84$ (or
-$\eta=0.83$ with an assumed $\eta_\mathrm{fib}=0.99$ waveguide-to-fiber factor),
-with a guided-mode waveguide branching ratio $\beta=0.88$ validated by mode
-expansion ($99.5\%$ fundamental-mode purity), cooperativity $C\approx22$,
-single-photon coupling $g/2\pi\approx1.0\unit{GHz}$ at a realistic $250\unit{nm}$
-trap height, and mode volume $0.89\,(\lambda/n)^3$ --- an order-of-magnitude gain
-in $\eta$ over a hand-tuned baseline. The design is robust across a fabrication
+chip-level interface efficiency $\eta_\mathrm{chip}=\beta\,C/(C{+}1)=0.82$ (or
+$\eta=0.81$ with an assumed $\eta_\mathrm{fib}=0.99$ waveguide-to-fiber factor),
+with a directional-flux waveguide branching ratio $\beta=0.88$ cross-checked by
+mode expansion, cooperativity $C\approx12$, and a dipole-aligned single-photon
+coupling $g/2\pi\approx0.77\unit{GHz}$ at a realistic $250\unit{nm}$ trap height
+(the $\sigma^+$ cycling value for the linearly polarized mode is
+$\approx0.55\unit{GHz}$), and mode volume $0.89\,(\lambda/n)^3$ --- an
+order-of-magnitude gain in $\eta$ over a hand-tuned baseline. The design is robust across a fabrication
 corner grid. All atom--photon figures of merit are fixed-position, two-level,
 dipole-aligned scalar proxies derived from classical fields, not outputs of a
 cavity-QED simulation.
@@ -133,9 +134,9 @@ lattice constant, the hole size, and a free-form closed spline hole shape, with 
 loss function built directly on the transduction efficiency $\eta$ rather than on
 $Q$ or $C$ alone. A final conformal in-plane scale tunes the resonance onto the
 atomic line, which a grid-offset-averaged mesh-convergence analysis pins to within
-one cavity linewidth. The resulting device reaches a guided-mode branching ratio
-$\beta=0.88$ and a chip efficiency $\eta_\mathrm{chip}=0.84$---a tenfold
-improvement over a hand-tuned baseline---with a cooperativity $C\approx22$, two
+one cavity linewidth. The resulting device reaches a directional-flux branching
+ratio $\beta=0.88$ and a chip efficiency $\eta_\mathrm{chip}=0.82$---a tenfold
+improvement over a hand-tuned baseline---with a cooperativity $C\approx12$, two
 orders of magnitude above the first single-atom photonic-crystal-cavity
 demonstration ($C\approx0.07$~\cite{thompson2013}) and comparable to the best
 recent nanophotonic atom-cavity systems, while remaining single-mode and robust
@@ -184,12 +185,18 @@ g(\mathbf r) = \mu\sqrt{\frac{\omega_c\, u(\mathbf r)}
 which we use directly so that $g$ reflects the true evanescent field at the trap
 height. Here $\omega_c=2\pi f_\mathrm{res}$, and $g$ (together with $\kappa$ and
 $\gamma$ below) is an angular rate; we quote $g/2\pi$ in Hz. The dipole
-$\mu=3.58\times10^{-29}\unit{C\,m}$ is the reduced matrix element
-$\langle J{=}\tfrac12\Vert er\Vert J'{=}\tfrac32\rangle$ of the $^{87}$Rb~D2 line;
-the reported $g$ assumes the stretched $\sigma^+$ cycling transition
-(Clebsch--Gordan amplitude $1$) and scales down by the corresponding amplitude for
-other transitions or polarizations (e.g.\ $\sqrt{3/5}$, $\sqrt{7/45}$, or the
-polarization-averaged $1/\sqrt3$), so it is not a universal Rb~D2 value. The
+$\mu=\sqrt{1/2}\,\langle J{=}\tfrac12\Vert er\Vert J'{=}\tfrac32\rangle
+=2.53\times10^{-29}\unit{C\,m}$ is the $^{87}$Rb~D2 $\sigma^+$ \emph{cycling}
+transition dipole; note this is $\sqrt{1/2}$ of the $J$-reduced matrix element
+($3.58\times10^{-29}\unit{C\,m}$), which is itself not a transition dipole. On the
+symmetry axis the mode is purely $E_y$-polarized ($|E_y|=|\mathbf E|$), so $g$ as
+defined is the \emph{dipole-aligned upper bound}: an atomic dipole aligned with the
+local field. A specific $\sigma^+$ cycling transition driven by this linearly
+polarized mode couples a further factor $1/\sqrt2$ weaker (the $\sigma^+$ projection
+$|E_{+1}|=|E_y|/\sqrt2$ of a linear field), i.e.\ $g_{\sigma^+}=g/\sqrt2$; other
+transitions or polarizations scale down by their relative amplitude (e.g.\
+$\sqrt{3/5}$, $\sqrt{7/45}$, or the polarization-averaged $1/\sqrt3$). The reported
+$g$ is therefore not a universal Rb~D2 value. The
 mode volume and Purcell factor are
 \begin{equation}
 V = \frac{\displaystyle\int\epsilon|\mathbf E|^2\,dV}{\max(\epsilon|\mathbf E|^2)},
@@ -226,9 +233,11 @@ collection-plane field onto the precomputed guided modes, giving
 $\beta_\mathrm{guided}=\beta_\mathrm{flux}\,(P_\mathrm{guided}/P_\mathrm{plane})$
 with $P_\mathrm{guided}=\sum_m|a_m|^2$; since $\beta_\mathrm{flux}$ also counts
 radiation crossing the plane, $\beta_\mathrm{flux}\ge\beta_\mathrm{guided}$. For
-the final device the two agree to within $0.3\%$ and $99.5\%$ of the collected
-power is in the fundamental guided mode, validating $\beta_\mathrm{flux}$ as a
-faithful branching ratio. Combining these, the efficiency with
+the final device the mode-expansion cross-check confirms that the collected power
+is overwhelmingly in the fundamental guided mode, supporting $\beta_\mathrm{flux}$
+as a faithful branching ratio (the precise mode-expansion fraction is set by the
+collection-plane extent and is re-evaluated with a full-width monitor). Combining
+these, the efficiency with
 which the atomic excitation is delivered as a collected photon---the figure of
 merit we optimize---is
 \begin{equation}
@@ -310,9 +319,10 @@ $8\unit{ps}$ run time (one to two cavity ring-downs, so the field-energy and flu
 monitors sample a strong-field epoch), perfectly matched layers on all boundaries,
 the $y$/$z$ mirror symmetries of the $E_y$ mode, and high-accuracy polarized
 subpixel averaging at the dielectric boundaries. We extract $f_\mathrm{res}$ and
-$Q$ by two independent methods that agree to better than $10\unit{MHz}$: a
-time-domain ring-down (resonance-finder) fit and a demodulated ring-down envelope
-fit.
+$Q$ from a time-domain ring-down (resonance-finder) fit, and cross-check it with a
+demodulated ring-down envelope fit seeded by the same frequency; the two agree to
+better than $10\unit{MHz}$. The cross-check is a consistency test on the same data,
+not an independent measurement.
 
 The \emph{absolute} resonant frequency requires care. On a single mesh it scatters
 by $\sim\!80\unit{GHz}$ (a few parts in $10^4$) as the mesh is refined
@@ -378,12 +388,12 @@ exposes the mode to the trap region $250\unit{nm}$ above the surface
 \textbf{Inverse-design trajectory.}
 (a) Verified interface efficiency $\eta$ from the periodic non-gradient
 (high-resolution time-domain) checks versus iteration: it climbs from $0.01$ to
-$0.83$, and the best-so-far envelope (red) shows that the optimizer reaches its
+$0.80$, and the best-so-far envelope (red) shows that the optimizer reaches its
 final efficiency by the end of the layout stage, with the shape stage refining it.
 The dashed line marks the layout$\to$shapes boundary; the dotted line is the
 hand-tuned baseline.
 (b) Optimization objective versus iteration: the verified interface loss
-$-\log\eta$ from the non-gradient checks falls from $4.6$ to $0.18$, and its
+$-\log\eta$ from the non-gradient checks falls from $4.6$ to $0.20$, and its
 best-so-far envelope decreases monotonically to the delivered design. The faint
 trace is the proxy surrogate $-\log\tilde\eta$ actually minimized at each
 iteration. The full proxy objective [Eq.~\eqref{eq:loss}] additionally carries a
@@ -394,7 +404,7 @@ iterations, showing the evolving hole schedule.}
 \end{figure*}
 
 Figure~\ref{fig:opt} traces the optimization. The verified efficiency
-[Fig.~\ref{fig:opt}(a)] climbs from $\eta=0.01$ to $0.83$: the optimizer first
+[Fig.~\ref{fig:opt}(a)] climbs from $\eta=0.01$ to $0.80$: the optimizer first
 opens the output port---rapidly raising $\beta$ and hence $\eta$---reaching
 near-final efficiency by the end of the layout stage, after which the shape stage
 refines the mode. The corresponding verified loss $-\log\eta$
@@ -463,13 +473,15 @@ The final trimmed device sits on the $^{87}$Rb~D2 line: a grid-offset-averaged,
 mesh-converged analysis places the resonance at
 $|f_\mathrm{res}-f_\mathrm{D2}|=0.3\unit{GHz}$ with a $\sim\!23\unit{GHz}$
 numerical uncertainty---within one cavity linewidth. Its loaded quality factor is
-$Q=1.2\times10^4$ ($\kappa/2\pi=31\unit{GHz}$), with a guided-mode branching ratio
-$\beta=0.88$ (the directional-flux and mode-expansion estimators agree to $0.3\%$,
-and $99.5\%$ of the collected power is in the fundamental waveguide mode),
-cooperativity $C\approx22$, single-photon coupling $g/2\pi\approx1.0\unit{GHz}$ at
-the $250\unit{nm}$ trap height, mode volume $V=0.89\,(\lambda/n)^3$, and Purcell
+$Q=1.2\times10^4$ ($\kappa/2\pi=31\unit{GHz}$), with a directional-flux branching
+ratio $\beta=0.88$ (cross-checked by mode expansion, which confirms the collected
+power is overwhelmingly in the fundamental waveguide mode),
+cooperativity $C\approx12$, dipole-aligned single-photon coupling
+$g/2\pi\approx0.77\unit{GHz}$ at the $250\unit{nm}$ trap height ($g_{\sigma^+}/2\pi
+\approx0.55\unit{GHz}$ for the $\sigma^+$ cycling transition of the linear mode),
+mode volume $V=0.89\,(\lambda/n)^3$, and Purcell
 factor $F_P\approx1.0\times10^3$. The chip-level interface efficiency is
-$\eta_\mathrm{chip}=0.84$ ($\eta=0.83$ including the assumed fiber factor). The
+$\eta_\mathrm{chip}=0.82$ ($\eta=0.81$ including the assumed fiber factor). The
 loss budget is dominated by the intended channel: $\approx\!88\%$ of the cavity
 decay exits the output waveguide, with only $\sim\!12\%$ residual scattering,
 confirming the device is strongly over-coupled rather than merely high-$Q$.
@@ -477,14 +489,14 @@ confirming the device is strongly over-coupled rather than merely high-$Q$.
 Figure~\ref{fig:perf} places this result in context. Panels (a)--(d) show the
 verified metrics climbing from the seed: the optimizer raises $\eta$ and $\beta$
 by an order of magnitude past the hand-tuned baseline (dashed), while the
-cooperativity settles near $C\sim22$ and the bare $Q$ is deliberately
+cooperativity settles near $C\sim12$ and the bare $Q$ is deliberately
 \emph{reduced} from the seed's value---the design trades useless intrinsic $Q$ for
 a useful, over-coupled interface. The design lineage [Fig.~\ref{fig:perf}(e),(f)]
 makes the same point across four geometries: the hand-tuned baseline and the
 band-engineered seed are both strongly under-coupled ($\beta\sim0.09$,
 $\eta\sim0.08$), even though the seed achieves a nominally enormous intrinsic
 quality factor; gradient inverse design opens the output port to $\beta=0.88$ and
-$\eta=0.83$, and the conformal trim then lands the resonance on the atomic line
+$\eta=0.80$, and the conformal trim then lands the resonance on the atomic line
 [Fig.~\ref{fig:perf}(g)] without disturbing that interface. Panel (h) shows the
 over-coupling trade-off directly: as the output mirror is made more transparent
 (the external coupling $\kappa_\mathrm{wg}$ increased), the loaded $Q$ and the
@@ -499,13 +511,13 @@ window---and not operating values; the operating design is the resolved-$Q$,
 over-coupled trimmed cavity.
 
 Relative to the hand-tuned baseline, the final design improves the transduction
-efficiency by roughly a factor of ten ($\eta:0.083\to0.83$) and clears both the
+efficiency by roughly a factor of ten ($\eta:0.08\to0.81$) and clears both the
 $\beta\ge0.80$ and $\eta\ge0.75$ targets. It is single-mode---the nearest
 competing resonance lies more than $1\unit{THz}$ away---and the bad-cavity
 hierarchy $\kappa\gg g\gg\gamma$ is maintained. Across a deterministic
 fabrication corner grid (hole-radius etch bias $\pm 4\unit{nm}$, lattice constant
 $\pm 2\unit{nm}$, beam width $\pm 10\unit{nm}$) the efficiency stays in the range
-$\eta=0.82\text{--}0.86$ and the branching ratio $\beta=0.86\text{--}0.89$: the
+$\eta=0.78\text{--}0.84$ and the branching ratio $\beta=0.86\text{--}0.89$: the
 perturbations shift the absolute resonance, which the same global-scale trim
 restores, but leave the interface metrics essentially intact.
 
@@ -514,14 +526,14 @@ restores, but leave the interface metrics essentially intact.
 Interpreted strictly as electromagnetic proxies, these numbers indicate a
 substantial improvement for the atom-to-flying-qubit channel. The cooperativity
 rises from $C\approx0.07$ in the first single-atom photonic-crystal-cavity
-coupling~\cite{thompson2013} to $C\approx22$ here, placing the cavity-emission
-efficiency $C/(C{+}1)$ near unity, and the mode-expansion-validated over-coupling
-$\beta=0.88$ delivers the photon into a single waveguide mode. Taken purely at face
+coupling~\cite{thompson2013} to $C\approx12$ here, placing the cavity-emission
+efficiency $C/(C{+}1)$ near unity, and the over-coupling $\beta=0.88$ delivers the
+photon predominantly into a single waveguide mode. Taken purely at face
 value, a two-node heralding rate scaling as $\eta^2$ would then improve by roughly
 two orders of magnitude over that early demonstration; we stress that this is an
 arithmetic extrapolation from the proxies---it ignores detector efficiency, mode
 overlap, phase stability, and atom survival---and that the often-quoted
-cavity-protocol infidelity scaling $\sim\ln C/C$ ($\approx0.14$ at $C\approx22$) is
+cavity-protocol infidelity scaling $\sim\ln C/C$ ($\approx0.21$ at $C\approx12$) is
 a heuristic we do not evaluate here. All such statements are projections from the
 classical interface metrics, not results of a quantum-dynamics simulation.
 
@@ -535,8 +547,8 @@ atom-to-waveguide transduction efficiency. The approach factorizes cleanly: Bloc
 band engineering supplies a clean photonic foundation with the mirror gap on the
 atomic line, while adjoint inverse design supplies the over-coupled, on-resonance
 interface; a conformal in-plane scale lands the mode on the line without
-disturbing the dimensionless design. The result, $\eta_\mathrm{chip}=0.84$ with a
-guided-mode $\beta=0.88$ and $C\approx22$, is a tenfold efficiency gain over a
+disturbing the dimensionless design. The result, $\eta_\mathrm{chip}=0.82$ with a
+directional-flux $\beta=0.88$ and $C\approx12$, is a tenfold efficiency gain over a
 hand-tuned baseline and a two-order-of-magnitude cooperativity gain over the first
 single-atom photonic-crystal-cavity demonstration.
 
@@ -545,13 +557,17 @@ Several limitations bound these claims, and we state them quantitatively.
 scalar proxies extracted from classical fields, not outputs of a master-equation
 or quantum-trajectory simulation; we make no claim about gate, readout, or
 entanglement fidelities, atom motion, or multilevel dynamics. (ii)~The reported
-$g$ assumes the $\sigma^+$ cycling transition; other transitions or polarizations
-scale it down by their Clebsch--Gordan amplitude. (iii)~The \emph{absolute}
+$g$ is a dipole-aligned upper bound computed with the $\sigma^+$ cycling dipole
+($\sqrt{1/2}$ of the $J$-reduced element) and the full field magnitude; because the
+mode is linearly polarized at the atom, the actual $\sigma^+$ cycling coupling is a
+factor $1/\sqrt2$ smaller ($g_{\sigma^+}/2\pi\approx0.55\unit{GHz}$,
+$C_{\sigma^+}\approx6$), and other transitions scale down further by their
+Clebsch--Gordan amplitude. (iii)~The \emph{absolute}
 resonance carries a $\sim\!23\unit{GHz}$ (sub-linewidth) numerical uncertainty
 even after grid-offset-averaged mesh convergence, and the field-sampled $g$ and
 hence $C$ carry a $\sim\!10\%$ mesh sensitivity, while $\beta$ and $\eta$ are
 mesh-robust to $\lesssim\!1\%$. (iv)~$\beta$ is a directional-flux ratio
-cross-checked by mode expansion (the two agree to $0.3\%$), not a measured
+cross-checked by mode expansion, not a measured
 quantity. (v)~The band-engineered seed's high $Q$ and $C$ are unresolved upper
 bounds, not operating values, and the atom-position maps hold $\kappa$ and $\beta$
 fixed at the cavity values. (vi)~The device has not been fabricated; the

@@ -82,6 +82,29 @@ def load_record():
     return record_mod.load_record(RECORD_DIR)
 
 
+# ── Dipole-convention correction (applied at render time) ───────────────────
+# The saved record/diagnostics/comparison-table were computed with the Rb D2
+# J-REDUCED dipole 3.58e-29 C*m. The reported (headline) coupling uses the sigma+
+# CYCLING transition dipole sqrt(1/2)*3.58e-29 = 2.53e-29 (the strongest real D2
+# transition; the J-reduced element is not itself a transition dipole). This is an
+# exact analytic rescale of every coupling quantity -- g -> g*sqrt(1/2), C -> C/2,
+# and eta = beta*C/(C+1)*eta_fib recomputed -- so we apply it here at plot time and
+# leave the raw optimization record immutable. A re-run with the corrected code
+# (inverse_design.config.DIPOLE_MOMENT_CYCLING) reproduces these values directly.
+ETA_FIB = 0.99
+DIPOLE_C_FACTOR = 0.5            # C ~ g^2, and g scales by sqrt(1/2)
+
+def corr_C(C):
+    return float(C) * DIPOLE_C_FACTOR
+
+def corr_eta(C, beta, eta_fib=ETA_FIB):
+    Cc = corr_C(C)
+    return float(beta) * Cc / (Cc + 1.0) * float(eta_fib)
+
+def corr_g_GHz(g_GHz):
+    return float(g_GHz) * DIPOLE_C_FACTOR ** 0.5
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # FIG 1 — platform schematic + final device + cross-section
 # ═══════════════════════════════════════════════════════════════════════════
@@ -268,7 +291,9 @@ def fig1():
 def fig2():
     rec = load_record()
     iters = [e["params"]["iteration"] for e in rec]
-    eta_tilde = [e["perf"]["proxy"]["eta_tilde"] for e in rec]   # surrogate eta minimized
+    # surrogate eta minimized, dipole-corrected via its proxy cooperativity C_tilde
+    eta_tilde = [corr_eta(e["perf"]["proxy"]["C_tilde"], e["perf"]["proxy"]["beta"],
+                          eta_fib=1.0) for e in rec]
     stages = [e["params"].get("stage", "") for e in rec]
     bnd = next((iters[i] for i in range(1, len(stages))
                 if stages[i] != stages[i - 1]), None)
@@ -278,9 +303,12 @@ def fig2():
     diag = [(e["params"]["iteration"], e["perf"]["diagnostic"])
             for e in rec if e["perf"].get("diagnostic")]
     d_it = np.array([it for it, _ in diag])
-    d_eta = np.array([d["eta_atom"] for _, d in diag])
+    d_eta = np.array([corr_eta(d["C_atom"], d["beta_wg"], d.get("fiber_efficiency", ETA_FIB))
+                      for _, d in diag])
     best = np.maximum.accumulate(d_eta)
-    ETA_BASE = 0.083                                          # hand-tuned baseline (design_1)
+    base_perf = datasets.read_json(RECORD_DIR / "baseline.json")["baseline_perf"]
+    ETA_BASE = corr_eta(base_perf["C_atom"], base_perf["beta_wg"],   # hand-tuned baseline
+                        base_perf.get("fiber_efficiency", ETA_FIB))
 
     fig = plt.figure(figsize=(WIDE, 4.3), constrained_layout=True)
     gs = fig.add_gridspec(2, 1, height_ratios=[1.55, 1.2], hspace=0.16)
@@ -522,8 +550,15 @@ def fig4():
             for e in rec if e["perf"].get("diagnostic")]
     its = [i for i, _ in diag]
 
+    def _dval(d, key):       # apply the cycling-dipole correction to C and eta
+        if key == "C_atom":
+            return corr_C(d["C_atom"])
+        if key == "eta_atom":
+            return corr_eta(d["C_atom"], d["beta_wg"], d.get("fiber_efficiency", ETA_FIB))
+        return d[key]
+
     def col(key):
-        return [d[key] for _, d in diag]
+        return [_dval(d, key) for _, d in diag]
 
     fig = plt.figure(figsize=(WIDE, 5.1))
     gs = fig.add_gridspec(3, 4, height_ratios=[1.0, 1.0, 1.15], hspace=0.55,
@@ -536,7 +571,7 @@ def fig4():
     for j, (key, lab, sc, color) in enumerate(metrics):
         ax = fig.add_subplot(gs[0, j])
         ax.plot(its, np.asarray(col(key)) * sc, "o-", ms=2.5, color=color)
-        bl = ax.axhline(base[key] * sc, ls="--", lw=0.9, color="C3",
+        bl = ax.axhline(_dval(base, key) * sc, ls="--", lw=0.9, color="C3",
                         label="baseline")
         ax.set_xlabel("iteration")
         ax.set_ylabel(lab)
@@ -557,7 +592,7 @@ def fig4():
     cols = [plt.cm.viridis(i / (len(designs) - 1)) for i in range(len(designs))]
     ax = fig.add_subplot(gs[1, :2])
     x = np.arange(len(designs))
-    ax.bar(x, [by[d]["eta_atom"] for d in designs], color=cols)
+    ax.bar(x, [corr_eta(by[d]["C_atom"], by[d]["beta_wg"]) for d in designs], color=cols)
     ax.axhline(0.75, ls=":", color="0.4", lw=0.8)
     ax.set_xticks(x)
     ax.set_xticklabels([short[d] for d in designs], rotation=20, ha="right",
@@ -600,12 +635,12 @@ def fig4():
     oc = datasets.read_csv(paths.DATA_DIR / "output_coupling_sweep.csv")
     ax = fig.add_subplot(gs[2, 2:])
     bv = [r["beta_wg"] for r in oc]
-    cv = [r["C_atom"] for r in oc]
-    ev = [r["eta_atom"] for r in oc]
+    cv = [corr_C(r["C_atom"]) for r in oc]
+    ev = [corr_eta(r["C_atom"], r["beta_wg"]) for r in oc]
     scat = ax.scatter(bv, cv, c=ev, cmap="viridis", s=55, zorder=3,
                       edgecolor="k", lw=0.4)
     ax.set_yscale("log")
-    ax.axhline(20, ls=":", color="0.4", lw=0.8)
+    ax.axhline(10, ls=":", color="0.4", lw=0.8)
     ax.set_xlabel(r"$\beta$")
     ax.set_ylabel(r"$C$")
     ax.set_title("over-coupling trade-off", fontsize=7.5)

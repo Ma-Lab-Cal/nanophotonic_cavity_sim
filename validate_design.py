@@ -46,8 +46,9 @@ production mesh, untrustworthy. ``--freq-campaign`` (Part A.1) attacks this at i
     non-dispersive dielectric receives Tidy3D's full-quality PolarizedAveraging subpixel
     treatment at the hole boundaries, which restores clean, monotonic ~dl^2 convergence.
     (The dispersive medium is kept as an explicit cross-check.)
-  * We then run a dense mesh ladder, Richardson-extrapolate f_res(dl -> 0), and report a
-    rigorous numerical uncertainty delta. The trim is re-derived on this CONVERGED
+  * We then run a dense mesh ladder, take the fine-mesh-mean f_res (a dl^2 intercept is
+    kept as a cross-check), and report a numerical uncertainty delta. The trim is re-derived
+    on this CONVERGED
     frequency (not the production mesh), giving a defensible
     |f_res - f_D2| = X +/- delta with delta < one linewidth.
 
@@ -83,6 +84,7 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import hashlib
 import json
 import subprocess
 import sys
@@ -94,6 +96,9 @@ from scipy.optimize import curve_fit
 
 import tidy3d as td
 
+# NOTE: scipy.optimize.curve_fit / a Lorentzian fit are intentionally not used; the
+# secondary resonance estimator is a demodulated ring-down consistency check (see
+# audit_resonance Method 2), not a spectral Lorentzian fit.
 from inverse_design import config as cfg
 from inverse_design import diagnostics
 from inverse_design.builder import n_eff_guess
@@ -108,7 +113,8 @@ from publication_ready.lib import datasets, fields_post, layout_ops, reuse
 F_D2 = cfg.F_TARGET                 # 87Rb D2 line frequency (Hz)   ~3.8423e14
 LAMBDA_D2 = cfg.C0_UM / F_D2        # in um
 GAMMA = cfg.GAMMA_RB                # natural linewidth, rad/s  (= 2pi * 6.0666 MHz)
-MU_D2 = cfg.DIPOLE_MOMENT           # reduced dipole matrix element (C*m)
+MU_D2 = cfg.DIPOLE_MOMENT           # J-reduced matrix element <J||er||J'> (C*m); NOT a transition dipole
+MU_CYCLING = cfg.DIPOLE_MOMENT_CYCLING  # sigma+ cycling transition dipole = sqrt(1/2)*MU_D2 (C*m)
 ETA_FIB = cfg.FIBER_EFFICIENCY      # assumed waveguide->fiber collection factor
 ATOM_OFFSETS = cfg.ATOM_SURFACE_OFFSETS_UM   # (0.20, 0.25, 0.30) um above top surface
 ATOM_NOMINAL_DZ = ATOM_OFFSETS[1]   # 0.25 um nominal trap height
@@ -350,11 +356,16 @@ def build_validation_sim(layout: dict, par: CavityParametrization, opts: SimOpts
         band = np.linspace(F_D2 - 60e9, F_D2 + 60e9, 5)
         for tag, xpl in (("inner", x_inner), ("outer", x_outer)):
             mspec = td.ModeSpec(num_modes=3, target_neff=neff0)
+            # Tidy3D `size` is the FULL transverse extent; y_half/z_half are HALF-extents
+            # (distance from the axis to the interior edge), so pass 2x to span the full
+            # interior (a PML margin wlM on each side). Passing y_half directly would clip
+            # the monitor to half-width and bias the mode-expansion guided/fundamental beta.
+            mon_size = (0, 2 * y_half, 2 * z_half)
             monitors.append(td.ModeMonitor(
-                center=(xpl, 0, 0), size=(0, y_half, z_half), freqs=list(band),
+                center=(xpl, 0, 0), size=mon_size, freqs=list(band),
                 mode_spec=mspec, name=f"wg_mode_{tag}"))
             monitors.append(td.FluxMonitor(
-                center=(xpl, 0, 0), size=(0, y_half, z_half), freqs=list(band),
+                center=(xpl, 0, 0), size=mon_size, freqs=list(band),
                 name=f"wg_flux_{tag}"))
 
     sim = sim.updated_copy(monitors=monitors)
@@ -380,16 +391,49 @@ def build_validation_sim(layout: dict, par: CavityParametrization, opts: SimOpts
 # ───────────────────────────────────────────────────────────────────────────────
 # 3. Run-or-reuse (idempotent; never re-bills a cached result)
 # ───────────────────────────────────────────────────────────────────────────────
+def _sim_hash(sim) -> str:
+    """Deterministic fingerprint of a Tidy3D simulation (geometry/mesh/medium/monitors)."""
+    try:
+        payload = sim.json()
+    except Exception:
+        payload = repr(sim)
+    return f"{td.__version__}:{hashlib.sha256(payload.encode()).hexdigest()[:16]}"
+
+
+def _check_cache(cache: Path, sim) -> None:
+    """#9 fail-closed: if a sidecar hash exists and mismatches the current sim, refuse to
+    reuse a stale HDF5. Legacy caches without a sidecar are reused with a loud warning."""
+    meta = cache.with_suffix(".meta.json")
+    cur = _sim_hash(sim)
+    if meta.exists():
+        cached = json.loads(meta.read_text()).get("sim_hash")
+        if cached != cur:
+            raise RuntimeError(
+                f"STALE CACHE {cache.name}: sim hash {cur} != cached {cached}. The geometry/"
+                "mesh/medium/monitors changed since this HDF5 was produced. Re-run with "
+                "--force (re-bills) or delete the cache + sidecar.")
+    else:
+        print(f"[cache] WARNING: no sidecar hash for {cache.name}; reusing UNVERIFIED legacy cache")
+
+
+def _write_cache_meta(cache: Path, sim) -> None:
+    cache.with_suffix(".meta.json").write_text(json.dumps(
+        {"sim_hash": _sim_hash(sim), "tidy3d_version": td.__version__}))
+
+
 def run_or_reuse(sim_obj, save_name: str, *, folder: Path | None = None, force: bool = False):
     """Run ``sim_obj.sim`` on the cloud, or reload a cached ``{save_name}.hdf5``.
 
     Returns the sim_obj with ``.sim_data`` attached and the analysis cache reset so the
-    wide-window resonance convention is used. Writes to ``VERIFY_DIR`` by default.
+    wide-window resonance convention is used. Writes to ``VERIFY_DIR`` by default. Reuse is
+    hash-verified against a ``{save_name}.meta.json`` sidecar (#9): a changed simulation
+    raises rather than silently serving a stale result.
     """
     folder = folder or paths.VERIFY_DIR
     folder.mkdir(parents=True, exist_ok=True)
     out = folder / f"{save_name}.hdf5"
     if out.exists() and not force:
+        _check_cache(out, sim_obj.sim)
         print(f"[run_or_reuse] reuse cached {out.name}")
         sim_obj.sim_data = td.SimulationData.from_file(str(out))
         # keep sim_obj.sim consistent with the cached run (monitors etc.)
@@ -398,6 +442,7 @@ def run_or_reuse(sim_obj, save_name: str, *, folder: Path | None = None, force: 
         return sim_obj
     cfg.ensure_api_key()
     print(f"[run_or_reuse] running cloud sim -> {out.name} (billable)")
+    _write_cache_meta(out, sim_obj.sim)
     sim_obj.run(directory=str(folder), save_name=save_name)
     sim_obj._analysis = {}
     return sim_obj
@@ -416,6 +461,7 @@ def run_batch(specs, *, folder: Path | None = None, force: bool = False) -> dict
     for name, so in specs:
         cache = folder / f"{name}.hdf5"
         if cache.exists() and not force:
+            _check_cache(cache, so.sim)            # #9 fail-closed on stale cache
             print(f"[batch] reuse {name}")
             so.sim_data = td.SimulationData.from_file(str(cache))
             so.sim = so.sim_data.simulation
@@ -432,7 +478,9 @@ def run_batch(specs, *, folder: Path | None = None, force: bool = False) -> dict
         bdata = batch.run(path_dir=str(folder / "validate_batch"))
         for name, so in to_run.items():
             so.sim_data = bdata[name]
-            so.sim_data.to_file(str(folder / f"{name}.hdf5"))
+            cache = folder / f"{name}.hdf5"
+            so.sim_data.to_file(str(cache))
+            _write_cache_meta(cache, so.sim)       # #9 sidecar hash
             so._analysis = {}
             out[name] = so
     return out
@@ -441,17 +489,15 @@ def run_batch(specs, *, folder: Path | None = None, force: bool = False) -> dict
 # ───────────────────────────────────────────────────────────────────────────────
 # 4. AUDITABLE figures of merit (inline, units shown, printed line-by-line)
 # ───────────────────────────────────────────────────────────────────────────────
-def _lorentzian(f, f0, fwhm, amp, base):
-    return base + amp * (fwhm / 2) ** 2 / ((f - f0) ** 2 + (fwhm / 2) ** 2)
-
-
 def audit_resonance(sim_obj) -> dict:
-    """f_res and Q by two methods: (1) ResonanceFinder ring-down, (2) Lorentzian spectral fit.
+    """f_res and Q by two estimators on the same ring-down: (1) ResonanceFinder, (2) demod fit.
 
     Method 1 is the production Harminv-style ring-down extractor (wide +/-8 THz window).
-    Method 2 builds the power spectrum of the combined point-monitor ring-down (post
-    source-decay) by FFT and fits a Lorentzian near the peak. Two independent extractions
-    on the same ring-down; agreement bounds the fit systematic.
+    Method 2 is a CONSISTENCY cross-check, NOT an independent extraction: it demodulates the
+    same post-decay ring-down by Method 1's frequency f1, low-passes to the slow envelope,
+    and fits the log-amplitude slope (-> Q) and phase slope (-> a small df, f2 = f1 + df).
+    Because it is seeded by f1 and uses the same data, agreement bounds the fit/window
+    systematic but does not constitute two independent measurements.
     """
     _hline("AUDIT 1 — RESONANT FREQUENCY & Q (two methods)")
     # Method 1: ResonanceFinder (drives the production pipeline)
@@ -462,7 +508,7 @@ def audit_resonance(sim_obj) -> dict:
     kappa1 = 2 * pi * f1 / Q1                      # rad/s
     print(f"  [M1 ResonanceFinder] f_res = {f1/1e12:.6f} THz   Q = {Q1:,.0f}")
     print(f"                       kappa/2pi = {kappa1/(2*pi*1e9):.3f} GHz "
-          f"(= 2*pi*f_res/Q)")
+          f"(= f_res/Q)")
     print(f"                       detuning from D2 = {(f1-F_D2)/1e9:+.2f} GHz")
 
     # Method 2: demodulated time-domain ring-down fit (independent of ResonanceFinder).
@@ -503,7 +549,7 @@ def audit_resonance(sim_obj) -> dict:
     return {
         "f_res_Hz": f1, "Q": Q1, "kappa_tot_2pi_GHz": kappa1 / (2 * pi * 1e9),
         "detuning_GHz": (f1 - F_D2) / 1e9,
-        "f_res_lorentzian_Hz": f2, "Q_lorentzian": Q2,
+        "f_res_demod_Hz": f2, "Q_demod": Q2,
         "method_agreement_GHz": (abs(f1 - f2) / 1e9) if f2 else None,
     }
 
@@ -660,11 +706,13 @@ def audit_mode_volume(sim_obj) -> dict:
 
 
 def audit_coupling(sim_obj) -> dict:
-    """g at the atom: vector field, polarization purity, interpolation spread, CG scaling.
+    """g at the atom: vector field, Cartesian E_y fraction, interpolation spread, CG scaling.
 
-    g(r) = mu * sqrt( omega * u_pol(r) / (2 hbar eps0 ∫ eps|E|^2 dV) ),  u_pol = |E_y|^2.
-    mu is the 87Rb D2 *reduced* dipole; a Clebsch-Gordan / line-strength table converts it
-    to specific |F,mF>->|F',mF'> transitions so g is not implied universal.
+    g(r) = mu_cyc * sqrt( omega * u_pol(r) / (2 hbar eps0 ∫ eps|E|^2 dV) ),  u_pol = |E_y|^2.
+    mu_cyc = sqrt(1/2)*<J||er||J'> is the 87Rb D2 sigma+ CYCLING transition dipole. On the
+    symmetry axis the atom sees pure E_y (|E_y| = |E|), so this g is the DIPOLE-ALIGNED
+    UPPER BOUND (atomic dipole aligned with the local field). The sigma+ cycling coupling
+    for this linearly polarized mode is a further 1/sqrt(2) smaller (reported separately).
     """
     _hline("AUDIT 4 — ATOM COUPLING g (vector field, purity, interpolation, CG)")
     omega = float(sim_obj.resonant_omega_c)
@@ -688,12 +736,16 @@ def audit_coupling(sim_obj) -> dict:
     uvec = {c: _interp(u[c], "linear") for c in u}
     Eabs = {c: np.sqrt(v) for c, v in uvec.items()}
     e2 = sum(uvec.values())
-    purity = uvec["Ey"] / e2 if e2 > 0 else np.nan
+    # Cartesian E_y energy fraction (a linear-polarization diagnostic, NOT a sigma+
+    # transition overlap: the latter is a complex combination E_{+1}=-(Ex+iEy)/sqrt(2)
+    # and needs the relative Ex/Ey PHASE, which separate intensities discard).
+    ey_fraction = uvec["Ey"] / e2 if e2 > 0 else np.nan
     print(f"  atom position: (x=src, y=0, z={z_atom*1e3:.0f} nm)  "
           f"[{ATOM_NOMINAL_DZ*1e3:.0f} nm above top surface]")
     print(f"  <|Ex|>,<|Ey|>,<|Ez|> (rms) = {Eabs['Ex']:.3e}, {Eabs['Ey']:.3e}, "
           f"{Eabs['Ez']:.3e}")
-    print(f"  polarization purity <|Ey|^2>/<|E|^2> = {purity:.4f}")
+    print(f"  Cartesian E_y energy fraction <|Ey|^2>/<|E|^2> = {ey_fraction:.4f}  "
+          f"(linear-pol diagnostic, not a sigma+ overlap)")
 
     # interpolation cross-check: nearest vs linear <|Ey|^2>
     u_lin = uvec["Ey"]
@@ -707,14 +759,17 @@ def audit_coupling(sim_obj) -> dict:
 
     def g_of_u(u_here):
         u_here = max(float(u_here), 0.0)
-        g = MU_D2 * np.sqrt(omega * u_here / (2 * hbar * epsilon_0 * U_int_m3))
+        # dipole-aligned upper bound: cycling dipole * full field magnitude (|E_y|=|E| on axis)
+        g = MU_CYCLING * np.sqrt(omega * u_here / (2 * hbar * epsilon_0 * U_int_m3))
         return g / (2 * pi)
     g2pi_lin = g_of_u(u_lin)
     g2pi_near = g_of_u(u_near)
     g_unc = abs(g2pi_lin - g2pi_near)
-    print(f"  g/2pi (linear)  = {g2pi_lin/1e9:.4f} GHz")
-    print(f"  g/2pi (nearest) = {g2pi_near/1e9:.4f} GHz  -> interp uncertainty "
-          f"+/- {g_unc/1e9:.4f} GHz")
+    g2pi_sigma = g2pi_lin / np.sqrt(2.0)        # sigma+ cycling, linear-field projection
+    print(f"  g/2pi (dipole-aligned UB, linear)  = {g2pi_lin/1e9:.4f} GHz")
+    print(f"  g/2pi (dipole-aligned UB, nearest) = {g2pi_near/1e9:.4f} GHz  -> interp "
+          f"uncertainty +/- {g_unc/1e9:.4f} GHz")
+    print(f"  g/2pi (sigma+ cycling = UB/sqrt2)   = {g2pi_sigma/1e9:.4f} GHz")
 
     # g_max: peak <|Ey|^2> in vacuum above the beam surface
     above = u["Ey"].where(u["Ey"].z > thickness / 2, drop=True)
@@ -722,19 +777,21 @@ def audit_coupling(sim_obj) -> dict:
     g2pi_max = g_of_u(u_peak)
     print(f"  g_max/2pi (peak |Ey|^2 above surface) = {g2pi_max/1e9:.4f} GHz")
 
-    # Clebsch-Gordan / line-strength scaling table (relative dipole factors)
+    # Clebsch-Gordan / line-strength scaling table (relative to the sigma+ cycling dipole)
     cg = clebsch_gordan_table()
-    print("  Clebsch-Gordan scaling (g = g_reduced * sqrt(rel. strength) * |e.E_hat|):")
+    print("  Clebsch-Gordan scaling (relative to the sigma+ cycling dipole = 1):")
     for row in cg:
-        g_tr = g2pi_lin * row["dipole_factor"]
+        g_tr = g2pi_sigma * row["dipole_factor"]
         print(f"      {row['name']:38s}  factor={row['dipole_factor']:.3f}  "
               f"g/2pi={g_tr/1e9:.3f} GHz")
 
     return {
         "z_atom_nm": z_atom * 1e3,
         "Ex": Eabs["Ex"], "Ey": Eabs["Ey"], "Ez": Eabs["Ez"],
-        "polarization_purity": float(purity),
-        "g_2pi_GHz_linear": g2pi_lin / 1e9,
+        "Ey_energy_fraction": float(ey_fraction),
+        "g_2pi_GHz_dipole_aligned_UB": g2pi_lin / 1e9,
+        "g_2pi_GHz_sigma_cycling": g2pi_sigma / 1e9,
+        "g_2pi_GHz_linear": g2pi_lin / 1e9,    # kept for table compat = dipole-aligned UB
         "g_2pi_GHz_nearest": g2pi_near / 1e9,
         "g_2pi_interp_unc_GHz": g_unc / 1e9,
         "g_2pi_GHz_max": g2pi_max / 1e9,
@@ -743,15 +800,15 @@ def audit_coupling(sim_obj) -> dict:
 
 
 def clebsch_gordan_table() -> list[dict]:
-    """Representative 87Rb D2 transition dipole factors relative to the reduced element.
+    """Representative 87Rb D2 transition dipole factors relative to the sigma+ cycling line.
 
-    The reduced dipole mu = 3.58e-29 C·m is the *J* reduced matrix element
-    <J=1/2||er||J'=3/2> = 4.22776 e a0 (Steck, "Rubidium 87 D Line Data"); it is NOT the
-    effective cycling dipole (~2.54e-29 C·m). For a specific |F,mF>->|F',mF'> transition and
-    light polarization the effective dipole is mu * dipole_factor, where dipole_factor is the
-    *cycling-normalized amplitude* (a linear multiplier on g, <= 1), computed from the
-    Wigner 6j x 3j coefficients. The sigma+ cycling transition is the reference (=1); g scales
-    DOWN for all others, so the reported g is NOT a universal Rb D2 coupling.
+    Couplings are computed with the sigma+ CYCLING transition dipole
+    mu_cyc = sqrt(1/2)*<J=1/2||er||J'=3/2> = 2.531e-29 C*m (the J-reduced element
+    <J||er||J'> = 4.22776 e a0 = 3.58e-29 C*m is NOT a transition dipole; the cycling
+    line is its strongest, at amplitude 1/sqrt(2)). dipole_factor below is the amplitude
+    of each transition RELATIVE TO the sigma+ cycling line (a linear multiplier on g, <= 1),
+    from the Wigner 6j x 3j coefficients; the cycling line is the reference (=1) and g
+    scales DOWN for all others, so the reported g is NOT a universal Rb D2 coupling.
     (Values verified analytically: 0.775=sqrt(3/5), 0.394=sqrt(7/45), 0.577=1/sqrt(3); the
     pi |2,0>->|2,0> transition is dipole-forbidden, factor 0.)
     """
@@ -884,7 +941,7 @@ def freq_resolution_campaign(outdir: Path, *, ladder_nm=(12, 10, 8, 6, 5),
     """Drive the numerical f_res uncertainty below one linewidth and re-trim.
 
     Steps: (1) report subpixel setting; (2) staircasing-vs-polarized comparison;
-    (3) constant-n mesh ladder + Richardson extrapolation; (4) two-method check at the
+    (3) constant-n mesh ladder + fine-mesh-mean converged estimate; (4) two-method check at the
     finest mesh; (5) re-derive the trim on the extrapolated frequency.
     """
     _hline("PART A.1 — RESONANT-FREQUENCY RESOLUTION CAMPAIGN")
@@ -963,7 +1020,7 @@ def freq_resolution_campaign(outdir: Path, *, ladder_nm=(12, 10, 8, 6, 5),
     detune_trim = (f_trim - F_D2) / 1e9
     print(f"  re-trimmed f_res @ dl={dl_fine*1e3:.0f} nm = {f_trim/1e12:.6f} THz")
     print(f"  |f_res - f_D2| = {abs(detune_trim):.2f} GHz +/- {delta/1e9:.2f} GHz")
-    within = abs(detune_trim) + delta < KAPPA_2PI_GHZ_NOMINAL
+    within = abs(detune_trim) + delta / 1e9 < KAPPA_2PI_GHZ_NOMINAL   # #3: both terms in GHz
     print(f"  WITHIN ONE LINEWIDTH (incl. uncertainty): "
           f"{'YES' if within else 'NO -- report larger bound honestly'}")
 
@@ -975,9 +1032,12 @@ def freq_resolution_campaign(outdir: Path, *, ladder_nm=(12, 10, 8, 6, 5),
         "ladder_nm": list(ladder_nm),
         "ladder_dl_um": dls.tolist(),
         "ladder_fres_THz": (frs / 1e12).tolist(),
-        "richardson": {"f_inf_THz": f_conv / 1e12, "f_conv_THz": f_conv / 1e12,
-                       "f_inf_dl2_THz": f_dl2 / 1e12, "delta_GHz": delta / 1e9,
-                       "fine_dls_nm": fine_dls_nm.tolist(), "n": 2.0, "c": 0.0},
+        # NOT a Richardson extrapolation: f_conv is the arithmetic MEAN of the finest
+        # meshes (high-Q f_res(dl) flattens into grid-alignment noise, not a power law);
+        # f_dl2 is a separate dl^2 least-squares intercept kept only as a cross-check.
+        "converged_mean": {"f_fine_mean_THz": f_conv / 1e12, "f_conv_THz": f_conv / 1e12,
+                           "f_dl2_crosscheck_THz": f_dl2 / 1e12, "delta_GHz": delta / 1e9,
+                           "fine_dls_nm": fine_dls_nm.tolist()},
         "untrimmed_converged_detuning_GHz": detune_inf,
         "retrim_scale": s_new,
         "retrimmed_fres_THz": f_trim / 1e12,
@@ -1125,8 +1185,10 @@ def plot_freq_resolution(outdir: Path) -> None:
     data = datasets.read_json(outdir / "freq_resolution.json")
     nm = np.array(data["ladder_nm"], float)
     det = (np.array(data["ladder_fres_THz"]) * 1e12 - F_D2) / 1e9
-    rich = data["richardson"]
-    f_inf_det = (rich["f_inf_THz"] * 1e12 - F_D2) / 1e9
+    # accept the new "converged_mean" key, fall back to the legacy "richardson" block
+    cm = data.get("converged_mean") or data.get("richardson", {})
+    f_mean_THz = cm.get("f_fine_mean_THz", cm.get("f_inf_THz"))
+    f_inf_det = (f_mean_THz * 1e12 - F_D2) / 1e9
     delta = float(data["delta_GHz"])
     tol = float(data["kappa_2pi_GHz_tolerance"])
 
@@ -1332,24 +1394,42 @@ def write_parameter_table(audit: dict, freq: dict | None, outdir: Path) -> None:
     _hline("PARAMETER TABLE")
     res = audit["resonance"]; kb = audit["decay"]
     vol = audit["mode_volume"]; g = audit["coupling"]; ce = audit["cooperativity_efficiency"]
-    # prefer the grid-offset-averaged, calibrated re-trim result for the f_res row
+    # prefer the grid-offset-averaged, calibrated re-trim result for the f_res row.
+    # NOTE (provenance): f_res here is from the grid-offset campaign on the CALIBRATED
+    # layout (scale s_cal); the other FoMs are from the headline audit on the production
+    # layout (s=1). The trim is a global in-plane scale of ~0.02%, which moves the
+    # dimensionless FoMs (Q, beta, V, g, C, eta) by <0.1% (g~s^-1.5, C~s^-3) -- below the
+    # reported precision. Re-run --headline-run on the calibrated layout for a single-
+    # geometry table. The f_res row is explicitly labelled with its (calibrated) source.
     f_state, f_src = f"{res['detuning_GHz']:+.1f} GHz (production mesh)", "production mesh"
-    go_path = VALID_DIR / "grid_offset.json"
+    go_path = outdir / "grid_offset.json"          # #7: use outdir, not a global default
     if go_path.exists():
         try:
             rt = json.loads(go_path.read_text())["results"]["retrim"]
+            # #8 fail-closed: do not assert "<1 linewidth" unless the stored flag says so
+            ok_lw = bool(rt.get("within_one_linewidth", False))
+            if not ok_lw:
+                raise RuntimeError(
+                    f"grid-offset retrim NOT within one linewidth "
+                    f"({rt['mean_detuning_GHz']:+.1f} ± {rt['total_uncertainty_GHz']:.0f} GHz); "
+                    "refusing to write a publication table. Re-run --grid-offset or widen the bound.")
             f_state = (f"{rt['mean_detuning_GHz']:+.1f} ± "
                        f"{rt['total_uncertainty_GHz']:.0f} GHz")
             f_src = "grid-offset avg + calibrated trim (<1 linewidth)"
-        except Exception:
+        except KeyError:
             pass
     elif freq:
         f_state = f"{freq['retrimmed_detuning_GHz']:+.1f} ± {freq['delta_GHz']:.1f} GHz"
         f_src = "converged + re-trimmed"
+    # #8 fail-closed: the inline FOMs must reproduce the production pipeline
+    sc = audit.get("self_consistency", {})
+    if sc and not sc.get("passed", True):
+        raise RuntimeError(f"self-consistency check FAILED ({sc}); refusing to write a "
+                           "publication table.")
     rows = [
         ("f_res - f_D2", f_state, f_src),
-        ("Q (loaded)", f"{res['Q']:,.0f}", "ring-down; Lorentzian cross-check"),
-        ("kappa/2pi", f"{kb['kappa_tot_2pi_GHz']:.2f} GHz", "= 2pi f/Q"),
+        ("Q (loaded)", f"{res['Q']:,.0f}", "ring-down; demod cross-check"),
+        ("kappa/2pi", f"{kb['kappa_tot_2pi_GHz']:.2f} GHz", "= f_res/Q"),   # #11
         ("beta_flux", f"{kb['beta_flux']:.3f}", "kappa(-x)/kappa_dir,tot"),
         ("beta_guided", f"{kb['beta_guided']:.3f}" if kb['beta_guided'] else "n/a",
          "mode-expansion guided fraction"),
@@ -1357,11 +1437,15 @@ def write_parameter_table(audit: dict, freq: dict | None, outdir: Path) -> None:
         ("V_dispersive", f"{vol['Vmode_dispersive_lambda_n3']:.3f} (λ/n)^3"
          if vol['Vmode_dispersive_lambda_n3'] else "n/a",
          f"d(we)/dw ({vol.get('Vmode_pct_diff', 0):+.1f}%)"),
-        ("g/2pi @250nm", f"{g['g_2pi_GHz_linear']:.3f} ± {g['g_2pi_interp_unc_GHz']:.3f} GHz",
-         "Ey proxy; reduced dipole"),
-        ("g_max/2pi", f"{g['g_2pi_GHz_max']:.3f} GHz", "peak |Ey| above surface"),
-        ("pol. purity", f"{g['polarization_purity']:.3f}", "|Ey|^2/|E|^2 at atom"),
-        ("C", f"{ce['C']:.1f}", "4g^2/(kappa gamma)"),
+        ("g/2pi @250nm (UB)",
+         f"{g['g_2pi_GHz_dipole_aligned_UB']:.3f} ± {g['g_2pi_interp_unc_GHz']:.3f} GHz",
+         "dipole-aligned upper bound; cycling dipole, |E_y|=|E| on axis"),
+        ("g/2pi sigma+", f"{g['g_2pi_GHz_sigma_cycling']:.3f} GHz",
+         "sigma+ cycling for the linear mode = UB/sqrt(2)"),
+        ("g_max/2pi (UB)", f"{g['g_2pi_GHz_max']:.3f} GHz", "peak |Ey| above surface"),
+        ("E_y energy fraction", f"{g['Ey_energy_fraction']:.3f}",
+         "|Ey|^2/|E|^2 at atom (linear-pol diagnostic, not a sigma+ overlap)"),
+        ("C", f"{ce['C']:.1f}", "4g^2/(kappa gamma); dipole-aligned UB"),
         ("kappa/g, g/gamma", f"{ce['kappa_over_g']:.0f}, {ce['g_over_gamma']:.0f}",
          "bad-cavity regime"),
         ("eta_chip", f"{ce['eta_chip_flux']:.3f}", "beta C/(C+1)"),
@@ -1479,7 +1563,7 @@ def main(argv=None):
             freq_bundle = datasets.read_json(outdir / "freq_resolution.json")
 
     # ── grid-offset averaging ──────────────────────────────────────────────────
-    if args.grid_offset:
+    if args.grid_offset or args.all:        # #7: the headline f_res claim depends on this
         grid_offset_campaign(outdir, force=args.force)
 
     # ── other convergence cross-checks ─────────────────────────────────────────

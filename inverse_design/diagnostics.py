@@ -118,7 +118,7 @@ def baseline_verification_sim(run_time: float = 5e-12,
 # Independent g / C / eta computation (units-checked)
 # ──────────────────────────────────────────────────────────────────────────
 
-def g_at_points(sim_obj, dipole_moment=cfg.DIPOLE_MOMENT,
+def g_at_points(sim_obj, dipole_moment=cfg.DIPOLE_MOMENT_CYCLING,
                 pol: str = "Ey") -> dict:
     """g/2pi (Hz) at the atom positions above the beam surface.
 
@@ -127,6 +127,15 @@ def g_at_points(sim_obj, dipole_moment=cfg.DIPOLE_MOMENT,
     Integral[u] the time-averaged total field energy integral eps_r |E|^2.
     The ratio is normalization- and averaging-convention independent because
     both monitors cover the same late-time window.
+
+    DIPOLE / POLARIZATION CONVENTION (dipole-aligned upper bound):
+    ``d = DIPOLE_MOMENT_CYCLING = sqrt(1/2)*<J||er||J'>`` is the sigma+ CYCLING
+    transition dipole (NOT the bare J-reduced element). On the symmetry axis the
+    atom sees a purely E_y-polarized field (|E_y| = |E|), so u_pol = |E_y|^2 is the
+    full field magnitude: g is then the *dipole-aligned upper bound* (atomic dipole
+    aligned with the local field). A specific sigma+ cycling transition driven by
+    this linearly polarized mode couples a further 1/sqrt(2) weaker (the sigma+
+    projection |E_{+1}| = |E_y|/sqrt(2) of a linear field), i.e. g_sigma+ = g/sqrt(2).
 
     Numerator: the full-resolution x=src yz-plane profile monitor
     (Field_Profile_Monitor_x, ~10-30 nm z spacing near the atom, interpolated

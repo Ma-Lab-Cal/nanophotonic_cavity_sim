@@ -582,11 +582,12 @@ def fig4():
                       framealpha=0.85, handlelength=1.4)
         panel(ax, "abcd"[j])
 
-    # (e) lineage bars
+    # (e) lineage bars. "final" IS the inverse design from the seed (then trimmed),
+    # so the redundant pre-trim invDes(seed) bar is omitted.
     rows = datasets.read_csv(paths.TABLES_DIR / "comparison_table.csv")
-    order = ["design_1", "invDes(design_1)", "seed", "invDes(seed)", "final"]
+    order = ["design_1", "invDes(design_1)", "seed", "final"]
     short = {"design_1": "base", "invDes(design_1)": "inv(base)", "seed": "seed",
-             "invDes(seed)": "inv(seed)", "final": "final"}
+             "final": "final"}
     by = {r["design"]: r for r in rows}
     designs = [d for d in order if d in by]
     cols = [plt.cm.viridis(i / (len(designs) - 1)) for i in range(len(designs))]
@@ -626,29 +627,35 @@ def fig4():
                    zorder=5)
         ax.annotate("on D2", xy=(xs, 0), xytext=(xs, 120), fontsize=6.3,
                     ha="center", arrowprops=dict(arrowstyle="->", lw=0.6))
-    ax.set_xlabel("in-plane scale change (%)")
+    ax.set_xlabel(r"conformal in-plane scale, $\Delta s$ (%)")
     ax.set_ylabel("detuning from D2 (GHz)")
-    ax.set_title("resonance trim", fontsize=7.5)
+    ax.set_title("resonance trim (design knob)", fontsize=7.5)
     panel(ax, "g")
 
     # (h) overcoupling Pareto: beta vs C colored by eta
     oc = datasets.read_csv(paths.DATA_DIR / "output_coupling_sweep.csv")
     ax = fig.add_subplot(gs[2, 2:])
-    bv = [r["beta_wg"] for r in oc]
-    cv = [corr_C(r["C_atom"]) for r in oc]
-    ev = [corr_eta(r["C_atom"], r["beta_wg"]) for r in oc]
-    scat = ax.scatter(bv, cv, c=ev, cmap="viridis", s=55, zorder=3,
-                      edgecolor="k", lw=0.4)
+    bv = np.array([r["beta_wg"] for r in oc])
+    cv = np.array([corr_C(r["C_atom"]) for r in oc])
+    ev = np.array([corr_eta(r["C_atom"], r["beta_wg"]) for r in oc])
     ax.set_yscale("log")
-    ax.axhline(10, ls=":", color="0.4", lw=0.8)
-    ax.set_xlabel(r"$\beta$")
-    ax.set_ylabel(r"$C$")
+    # generous, padded limits so no marker is clipped by the frame or panel label
+    ax.set_xlim(0.60, 1.05)
+    ax.set_ylim(4e-3, 4e2)
+    ax.axhline(10, ls=":", color="0.5", lw=0.8)
+    scat = ax.scatter(bv, cv, c=ev, cmap="viridis", s=48, zorder=3,
+                      edgecolor="k", lw=0.5, vmin=0, vmax=0.85)
+    # mark the operating point (max eta)
+    iopt = int(np.argmax(ev))
+    ax.annotate("design", (bv[iopt], cv[iopt]), textcoords="offset points",
+                xytext=(-4, 9), fontsize=6, ha="right", fontweight="bold")
+    ax.set_xlabel(r"branching ratio $\beta$")
+    ax.set_ylabel(r"cooperativity $C$")
     ax.set_title("over-coupling trade-off", fontsize=7.5)
     cb = fig.colorbar(scat, ax=ax, fraction=0.046, pad=0.03)
     cb.set_label(r"$\eta$", fontsize=6.5)
     cb.ax.tick_params(labelsize=6)
-    panel(ax, "h")
-
+    panel(ax, "h", x=0.030, y=0.95)
     _save(fig, "fig4_performance.pdf")
 
 

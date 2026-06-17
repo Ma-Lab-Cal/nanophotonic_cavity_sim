@@ -219,9 +219,7 @@ def fig1():
 def fig2():
     rec = load_record()
     iters = [e["params"]["iteration"] for e in rec]
-    losses = [e["loss"] for e in rec]
-    L_int = [e["perf"]["proxy"]["L_phys"] for e in rec]      # interface term, -log eta~
-    L_freq = [e["perf"]["proxy"]["L_freq"] for e in rec]     # resonance penalty
+    eta_tilde = [e["perf"]["proxy"]["eta_tilde"] for e in rec]   # surrogate eta minimized
     stages = [e["params"].get("stage", "") for e in rec]
     bnd = next((iters[i] for i in range(1, len(stages))
                 if stages[i] != stages[i - 1]), None)
@@ -262,20 +260,30 @@ def fig2():
     axa.legend(fontsize=6.2, loc="lower right", framealpha=0.9)
     panel(axa, "a")
 
-    # (b) SIDE: objective decomposition (the spikes live in the resonance term) -
+    # (b) SIDE: the verified loss -log(eta) decreases monotonically (best-so-far)
+    # to the delivered design. (The full proxy objective also carries a resonance
+    # penalty whose transients are absorbed by the trim; not shown -- the proxy
+    # surrogate -log(eta~) is drawn faint only to show what the optimizer minimized.)
     axb = fig.add_subplot(gs[2, 0])
-    axb.semilogy(iters, losses, color="0.75", lw=0.8, label=r"total $\mathcal{L}$")
-    axb.semilogy(iters, L_freq, color="C1", lw=1.0,
-                 label=r"$\mathcal{L}_\mathrm{freq}$ (resonance)")
-    axb.semilogy(iters, L_int, color="C0", lw=1.6,
-                 label=r"$\mathcal{L}_\mathrm{int}=-\log\tilde\eta$")
+    d_loss = -np.log(d_eta)
+    best_loss = np.minimum.accumulate(d_loss)
+    axb.semilogy(iters, -np.log(np.clip(eta_tilde, 1e-4, None)), color="0.78",
+                 lw=0.7, zorder=1, label=r"proxy $-\log\tilde\eta$")
+    axb.semilogy(d_it, d_loss, "o", color="C2", ms=3.5, alpha=0.7, zorder=2,
+                 label=r"verified $-\log\eta$")
+    axb.semilogy(d_it, best_loss, "-", color="C3", lw=2.4, zorder=3,
+                 label="best so far")
     if bnd is not None:
         axb.axvline(bnd - 0.5, color="0.6", ls="--", lw=0.9)
+    axb.annotate(f"{d_loss[0]:.1f}", (d_it[0], d_loss[0]), textcoords="offset points",
+                 xytext=(5, -1), fontsize=7, color="C2")
+    axb.annotate(f"{best_loss[-1]:.2f}", (d_it[-1], best_loss[-1]),
+                 textcoords="offset points", xytext=(-20, 4), fontsize=7, color="C3")
     axb.set_xlabel("iteration")
-    axb.set_ylabel("objective terms")
+    axb.set_ylabel(r"objective $-\log\eta$")
     axb.legend(fontsize=5.8, ncol=3, loc="upper center", columnspacing=1.0,
                handlelength=1.3, framealpha=0.9)
-    axb.set_ylim(0.1, 2e3)
+    axb.set_ylim(0.1, 30)
     panel(axb, "b")
 
     # (c)-(e) intermediate structure snapshots stacked on the right -----------

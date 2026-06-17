@@ -403,6 +403,7 @@ def fig3():
     ax.set_ylim(-0.55, 0.62)
     _true_box(ax)
     ax.axhline(za, color="cyan", ls="--", lw=0.9)
+    ax.plot(0.0, za, marker="*", ms=10, color="cyan", mec="k", mew=0.5, zorder=6)
     ax.text(-0.82, za + 0.03, "atom", color="cyan", fontsize=6.5, va="bottom")
     ax.set_title(r"defect cut ($x=0$)", fontsize=7.5)
     panel(ax, "a", color="w")
@@ -417,6 +418,15 @@ def fig3():
     axc.set_xlim(-2.6, 2.6)
     axc.set_ylim(-0.5, 0.5)
     _true_box(axc)
+    # atom sits at x=0 but 250 nm ABOVE this plane: mark the column, not a point
+    axc.axvline(0.0, color="cyan", ls=":", lw=0.8, zorder=5)
+    axc.plot(0.0, 0.0, marker="*", ms=9, color="cyan", mec="k", mew=0.5, zorder=6)
+    axc.text(0.08, 0.46, "atom column\n($250$ nm above)", color="cyan",
+             fontsize=5.6, ha="left", va="top")
+    # the mode is over-coupled to the -x output, so the envelope leans that way
+    axc.annotate("to output ($-x$)", xy=(-2.45, 0.36), xytext=(-1.05, 0.36),
+                 color="w", fontsize=6.0, va="center",
+                 arrowprops=dict(arrowstyle="->", color="w", lw=1.0))
     axc.set_title(r"beam midplane ($z=0$)", fontsize=7.5)
     panel(axc, "c", color="w")
 
@@ -427,7 +437,8 @@ def fig3():
     axd.set_ylim(-0.55, 0.62)
     _true_box(axd)
     axd.axhline(za, color="cyan", ls="--", lw=0.9)
-    axd.text(-2.5, za + 0.04, "atom", color="cyan", fontsize=6.5, va="bottom")
+    axd.plot(0.0, za, marker="*", ms=10, color="cyan", mec="k", mew=0.5, zorder=6)
+    axd.text(0.08, za + 0.04, "atom", color="cyan", fontsize=6.5, va="bottom")
     axd.set_title(r"longitudinal ($y=0$),  $|E|$", fontsize=7.5)
     panel(axd, "d", color="w")
 
@@ -438,39 +449,63 @@ def fig3():
     axe.set_ylim(-0.55, 0.62)
     _true_box(axe)
     axe.axhline(za, color="0.25", ls="--", lw=0.7)
+    axe.plot(0.0, za, marker="*", ms=9, color="yellow", mec="k", mew=0.5, zorder=6)
     axe.set_title(r"longitudinal ($y=0$),  $\mathrm{Re}\,E_y$ (standing wave)",
                   fontsize=7.5)
     panel(axe, "e")
 
-    # band structure (mirror + defect cells) -- panel (b)
+    # band structure (mirror + defect cells) -- panel (b).
+    # Each Bloch unit-cell ring-down returns several resonances per k (plus
+    # spurious near-DC fits); we trace the LOWEST physical band of each cell --
+    # the dielectric band whose zone-edge maximum opens the mirror gap. The
+    # defect cell's band edge is pushed up to D2, localizing the cavity mode.
     ax = axb
-    cells = [("final_mirror", "C0", "mirror cell"),
-             ("final_defect", "C1", "defect cell")]
-    for key, color, lab in cells:
+
+    def lowest_band(rec, lo=80.0, hi=400.0):
+        ks, fs = [], []
+        for k, fr in zip(rec["ks"], rec["freqs"]):
+            cand = [f / 1e12 for f in fr if lo < f / 1e12 < hi]
+            if cand:
+                ks.append(k)
+                fs.append(min(cand))
+        return np.asarray(ks), np.asarray(fs)
+
+    # mirror photonic band gap: between the two lowest physical X-point modes
+    gap_lo = gap_hi = None
+    if "final_mirror" in bands_f:
+        xpt = sorted(f / 1e12 for f in bands_f["final_mirror"]["freqs"][-1]
+                     if f / 1e12 > 50.0)
+        if len(xpt) >= 2:
+            gap_lo, gap_hi = xpt[0], xpt[1]
+            ax.axhspan(gap_lo, gap_hi, color="C0", alpha=0.12, zorder=1)
+
+    for key, color, lab in [("final_mirror", "C0", "mirror cell band"),
+                            ("final_defect", "C1", "defect cell band")]:
         if key not in bands_f:
             continue
-        r = bands_f[key]
-        for k, fr in zip(r["ks"], r["freqs"]):
-            ax.scatter([k] * len(fr), np.asarray(fr) / 1e12, s=9, color=color,
-                       alpha=0.8, zorder=3, label=lab)
-            lab = None
-    # mirror band-gap shading from the mirror X-point edges
+        kk, ff = lowest_band(bands_f[key])
+        ax.plot(kk, ff, "o-", color=color, ms=4, lw=1.5, zorder=4, label=lab)
+
     if "final_mirror" in bands_f:
-        xf = sorted(np.asarray(bands_f["final_mirror"]["freqs"][-1]) / 1e12)
-        if len(xf) >= 2:
-            ax.axhspan(xf[0], xf[1], color="C0", alpha=0.10, zorder=1,
-                       label="mirror gap")
         a_mir = bands_f["final_mirror"]["a"]
         kk = np.linspace(0, 0.5, 60)
-        ax.plot(kk, kk * cfg.C0_UM / a_mir * 1e-12, "k-", lw=0.8, alpha=0.5,
-                label="light line")
-    ax.axhline(F_D2_THZ, color="C3", ls="--", lw=1.1, label="Rb D2 (384.23 THz)")
+        ax.plot(kk, kk * cfg.C0_UM / a_mir * 1e-12, "-", color="0.55", lw=0.7,
+                alpha=0.8, zorder=2, label="light line")
+    ax.axhline(F_D2_THZ, color="C3", ls="--", lw=1.2, zorder=5, label="Rb D2")
+
+    if gap_lo is not None:
+        ax.text(0.035, 0.5 * (gap_lo + gap_hi), "mirror band gap", color="C0",
+                fontsize=6.2, va="center", ha="left", zorder=6)
+        ax.annotate("defect edge\nlifted to D2", xy=(0.5, gap_lo + 18),
+                    xytext=(0.275, 0.5 * (gap_lo + gap_hi)), color="C1",
+                    fontsize=5.6, ha="left", va="center", zorder=6,
+                    arrowprops=dict(arrowstyle="->", color="C1", lw=0.8))
     ax.set_xlim(0, 0.5)
-    ax.set_ylim(330, 470)
+    ax.set_ylim(150, 440)
     ax.set_xlabel(r"$k_x$ ($2\pi/a$)")
     ax.set_ylabel("frequency (THz)")
     ax.set_title("Bloch band structure", fontsize=7.5)
-    ax.legend(loc="upper left", ncol=1, fontsize=5.4, framealpha=0.85,
+    ax.legend(loc="lower right", ncol=1, fontsize=5.8, framealpha=0.92,
               handletextpad=0.4, labelspacing=0.3)
     panel(ax, "b")
     _save(fig, "fig3_fields_bands.pdf")

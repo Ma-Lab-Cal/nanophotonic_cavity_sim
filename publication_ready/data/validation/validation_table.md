@@ -1,0 +1,20 @@
+# Final-design validation parameters (EM proxies)
+
+| Quantity | Value | Definition / convention |
+|---|---|---|
+| f_res - f_D2 | +0.3 ± 23 GHz | grid-offset avg + calibrated trim (<1 linewidth) |
+| Q (loaded) | 12,268 | ring-down; Lorentzian cross-check |
+| kappa/2pi | 31.29 GHz | = 2pi f/Q |
+| beta_flux | 0.879 | kappa(-x)/kappa_dir,tot |
+| beta_guided | 0.877 | mode-expansion guided fraction |
+| V_legacy | 0.887 (λ/n)^3 | eps|E|^2 norm |
+| V_dispersive | 0.874 (λ/n)^3 | d(we)/dw (-1.4%) |
+| g/2pi @250nm | 1.023 ± 0.017 GHz | Ey proxy; reduced dipole |
+| g_max/2pi | 8.257 GHz | peak |Ey| above surface |
+| pol. purity | 1.000 | |Ey|^2/|E|^2 at atom |
+| C | 22.1 | 4g^2/(kappa gamma) |
+| kappa/g, g/gamma | 31, 169 | bad-cavity regime |
+| eta_chip | 0.841 | beta C/(C+1) |
+| eta_with_fiber | 0.832 | x eta_fib=0.99 (assumed) |
+
+_g, C, eta are fixed-position, two-level, dipole-aligned electromagnetic proxies, not cavity-QED dynamics._

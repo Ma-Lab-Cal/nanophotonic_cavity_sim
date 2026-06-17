@@ -1,0 +1,153 @@
+{
+ "convention": {
+  "schema_version": "1.0",
+  "metrics_path": "inverse_design.diagnostics.perf_from_simulation",
+  "f_target_Hz": 384230587728663.3,
+  "f_target_THz": 384.2305877286633,
+  "gamma_2pi_MHz": 6.0666,
+  "fiber_efficiency": 0.99,
+  "dipole_moment_Cm": 3.58e-29,
+  "g_definition": "g = d*sqrt(omega*u_pol/(2*hbar*eps0*Integral[eps|E|^2]dV)), reported as g/2pi in Hz",
+  "g_transition_note": "d = <J=1/2||er||J'=3/2> = 3.58e-29 C*m (J reduced dipole, Steck). For a specific |F,mF>->|F',mF'> transition and polarization, g = g_reduced * dipole_factor * |e.E_hat|, dipole_factor<=1 the cycling-normalized amplitude (1.000 sigma+ cycling; 0.775=sqrt(3/5); 0.394=sqrt(7/45); 0.577=1/sqrt(3) line-averaged). g is NOT universal.",
+  "C_definition": "C = 4 g^2 / (kappa_tot * gamma)",
+  "eta_definition": "eta = beta * C/(C+1) * eta_fiber",
+  "eta_chip_definition": "eta_chip = beta * C/(C+1)  (no fiber factor)",
+  "eta_with_fiber_definition": "eta_with_fiber = eta_chip * eta_fiber, eta_fiber=0.99 ASSUMED external collection",
+  "beta_definition": "HEADLINE beta = beta_flux = kappa(-x)/kappa_directional(total) (directional flux ratio)",
+  "beta_guided_definition": "beta_guided = beta_flux * (power in all guided modes / total plane power), from a mode-expansion ModeMonitor co-located with a flux monitor in the output (-x) waveguide; beta_fund uses the fundamental mode only. Ordering beta_flux >= beta_guided >= beta_fund.",
+  "Vmode_definition": "V = Integral[eps|E|^2]dV / max(eps|E|^2), in (lambda/n)^3, NO legacy symmetry factor",
+  "Vmode_dispersive_note": "legacy uses eps|E|^2; the dispersive convention replaces eps by Re[d(omega*eps)/domega] in SiN (a ~1-2% correction, reported separately)",
+  "kappa_tot": "linewidth kappa = 2*pi*f_res/Q (ResonanceFinder ringdown); NOTE != kappa_directional(total)",
+  "f_res_numerical_note": "absolute f_res carries a mesh numerical uncertainty; the converged value and +/- delta come from the full-beam-refined mesh ladder (validate_design.py, freq_resolution.json), not a single production mesh",
+  "output_face": "-x",
+  "atom_offsets_nm": [
+   200,
+   250,
+   300
+  ],
+  "thickness_um": 0.15,
+  "width_um": 0.5,
+  "scope": "EM-derived scalar proxies (fixed-position, two-level, dipole-aligned); not a cavity-QED / master-equation / quantum-trajectory simulation"
+ },
+ "audit": {
+  "resonance": {
+   "f_res_Hz": 383924167030972.94,
+   "Q": 12268.419386189194,
+   "kappa_tot_2pi_GHz": 31.2936943990653,
+   "detuning_GHz": -306.420697690375,
+   "f_res_lorentzian_Hz": 383924161784462.9,
+   "Q_lorentzian": 12261.698507187486,
+   "method_agreement_GHz": 0.0052465100625
+  },
+  "decay": {
+   "kappa_tot_2pi_GHz": 31.2936943990653,
+   "kappa_dir_total_2pi_GHz": 144.13073167050436,
+   "kappa_wg_2pi_GHz": 126.69416666549698,
+   "kappa_residual_2pi_GHz": 17.436565005007388,
+   "kappa_per_face_2pi_GHz": {
+    "+x": 0.03321697026068469,
+    "-x": 126.69416666549698,
+    "+y": 3.953879940767432,
+    "-y": 3.953879940767432,
+    "+z": 4.747794076605924,
+    "-z": 4.747794076605924,
+    "total": 144.13073167050436
+   },
+   "beta_flux": 0.8790225734448576,
+   "beta_guided": 0.876832515025061,
+   "beta_fund": 0.8750220566309365,
+   "guided_fraction_outer": 0.9975085299445567,
+   "guided_fraction_inner": 0.9971337199280275,
+   "fundamental_fraction_outer": 0.995448903208204,
+   "higher_order_content_outer": 0.00206477105159919
+  },
+  "mode_volume": {
+   "Vmode_legacy_lambda_n3": 0.886790366996297,
+   "Vmode_dispersive_lambda_n3": 0.8743589125067206,
+   "dispersive_factor": 1.0495325716873858,
+   "Vmode_pct_diff": -1.401848165275379,
+   "n_max": 1.9973844592737535
+  },
+  "coupling": {
+   "z_atom_nm": 325.0,
+   "Ex": 0.0,
+   "Ey": 506.2970385256598,
+   "Ez": 0.0,
+   "polarization_purity": 1.0,
+   "g_2pi_GHz_linear": 1.0232194308920868,
+   "g_2pi_GHz_nearest": 1.006257345354082,
+   "g_2pi_interp_unc_GHz": 0.016962085538004757,
+   "g_2pi_GHz_max": 8.257099098831304,
+   "clebsch_gordan_table": [
+    {
+     "name": "|F=2,mF=2>->|F'=3,mF'=3> (sigma+, cycling)",
+     "dipole_factor": 1.0
+    },
+    {
+     "name": "|F=2,mF=0>->|F'=3,mF'=0> (pi) = sqrt(3/5)",
+     "dipole_factor": 0.775
+    },
+    {
+     "name": "|F=2,mF=0>->|F'=2,mF'=0> (pi, dipole-forbidden)",
+     "dipole_factor": 0.0
+    },
+    {
+     "name": "|F=2,mF=0>->|F'=1,mF'=0> (pi) = sqrt(7/45)",
+     "dipole_factor": 0.394
+    },
+    {
+     "name": "isotropic / polarization-averaged = 1/sqrt(3)",
+     "dipole_factor": 0.577
+    }
+   ]
+  },
+  "cooperativity_efficiency": {
+   "g_2pi_GHz": 1.0232194308920868,
+   "C": 22.059484076000075,
+   "kappa_over_g": 30.583561506237338,
+   "g_over_gamma": 168.66439700855284,
+   "eta_chip_flux": 0.8409027885204529,
+   "eta_with_fiber_flux": 0.8324937606352483,
+   "eta_chip_guided": 0.8388077044033154,
+   "eta_with_fiber_guided": 0.8304196273592822
+  },
+  "self_consistency": {
+   "passed": true,
+   "pipeline_perf": {
+    "f_res_Hz": 383924167030972.94,
+    "Q": 12268.419386189194,
+    "kappa_tot_2pi_GHz": 31.2936943990653,
+    "Vmode_lambda_n3": 0.886790366996297,
+    "purcell": 1051.3060526128406,
+    "beta_wg": 0.8790225734448576,
+    "g_2pi_Hz_at_200nm": 1536590559.680079,
+    "g_2pi_Hz_at_250nm": 1023219430.8920867,
+    "g_2pi_Hz_at_300nm": 683323625.9019972,
+    "C_atom": 22.059484076000075,
+    "eta_atom": 0.8324937606352483,
+    "gamma_2pi_MHz": 6.0666,
+    "fiber_efficiency": 0.99
+   }
+  }
+ },
+ "freq_campaign": null,
+ "provenance": {
+  "git_commit": "783f634",
+  "tidy3d_version": "2.11.2",
+  "python": "3.12.13",
+  "f_D2_Hz": 384230587728663.3,
+  "lambda_D2_um": 0.7802410000000001,
+  "gamma_2pi_MHz": 6.0666,
+  "mu_D2_Cm": 3.58e-29,
+  "eta_fiber_assumed": 0.99,
+  "atom_offsets_um": [
+   0.2,
+   0.25,
+   0.3
+  ],
+  "atom_nominal_dz_um": 0.25,
+  "output_face": "-x",
+  "scope": "Classical EM only; g/C/eta are fixed-position two-level dipole-aligned proxies, not cavity-QED dynamics.",
+  "stage": "parameter_table"
+ }
+}

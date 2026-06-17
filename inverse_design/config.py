@@ -20,7 +20,7 @@ RESULTS_ROOT = REPO_ROOT / "invDesResults"
 # ── Physics constants (Rb D2) ─────────────────────────────────────────────
 C0_UM = 299792458.0 * 1e6        # speed of light (um/s), matches td.constants.C_0
 F_TARGET = C0_UM / 0.780241      # 87Rb D2 line, 780.241 nm -> ~384.23 THz (Hz)
-DIPOLE_MOMENT = 3.58e-29         # C*m, Rb D2 effective dipole moment
+DIPOLE_MOMENT = 3.58e-29         # C*m, Rb D2 <J=1/2||er||J'=3/2> reduced dipole matrix element (Steck)
 GAMMA_RB = 2 * np.pi * 6.0666e6  # rad/s, Rb D2 natural linewidth (gamma = 2pi*6.07 MHz)
 FIBER_EFFICIENCY = 0.99          # eta_fiber used in eta(r); same default as cooperativity()
 

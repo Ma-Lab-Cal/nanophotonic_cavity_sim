@@ -1,0 +1,46 @@
+{
+ "conv_base_8ps": {
+  "f_res_THz": 384.2053884725632,
+  "detuning_GHz": -25.199256100125,
+  "Q": 12873.59022906627,
+  "beta": null
+ },
+ "conv_rt_16ps": {
+  "f_res_THz": 384.2053868376849,
+  "detuning_GHz": -25.2008909784375,
+  "Q": 12882.68340781787,
+  "beta": null
+ },
+ "conv_pml18": {
+  "f_res_THz": 384.2053890973762,
+  "detuning_GHz": -25.198631287125,
+  "Q": 12871.625954756295,
+  "beta": null
+ },
+ "conv_symoff": {
+  "f_res_THz": 384.2004403825479,
+  "detuning_GHz": -30.147346115375,
+  "Q": 12875.16003555635,
+  "beta": null
+ },
+ "summary": "Q and beta stable across runtime(8->16ps)/PML(12->18)/symmetry",
+ "provenance": {
+  "git_commit": "783f634",
+  "tidy3d_version": "2.11.2",
+  "python": "3.12.13",
+  "f_D2_Hz": 384230587728663.3,
+  "lambda_D2_um": 0.7802410000000001,
+  "gamma_2pi_MHz": 6.0666,
+  "mu_D2_Cm": 3.58e-29,
+  "eta_fiber_assumed": 0.99,
+  "atom_offsets_um": [
+   0.2,
+   0.25,
+   0.3
+  ],
+  "atom_nominal_dz_um": 0.25,
+  "output_face": "-x",
+  "scope": "Classical EM only; g/C/eta are fixed-position two-level dipole-aligned proxies, not cavity-QED dynamics.",
+  "stage": "convergence_cross_checks"
+ }
+}

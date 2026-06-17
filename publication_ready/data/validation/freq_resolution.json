@@ -1,0 +1,98 @@
+{
+ "convention": {
+  "schema_version": "1.0",
+  "metrics_path": "inverse_design.diagnostics.perf_from_simulation",
+  "f_target_Hz": 384230587728663.3,
+  "f_target_THz": 384.2305877286633,
+  "gamma_2pi_MHz": 6.0666,
+  "fiber_efficiency": 0.99,
+  "dipole_moment_Cm": 3.58e-29,
+  "g_definition": "g = d*sqrt(omega*u_pol/(2*hbar*eps0*Integral[eps|E|^2]dV)), reported as g/2pi in Hz",
+  "C_definition": "C = 4 g^2 / (kappa_tot * gamma)",
+  "eta_definition": "eta = beta * C/(C+1) * eta_fiber",
+  "beta_definition": "beta = kappa(-x) / kappa_directional(total)",
+  "Vmode_definition": "V = Integral[eps|E|^2]dV / max(eps|E|^2), in (lambda/n)^3, NO legacy symmetry factor",
+  "kappa_tot": "linewidth kappa = 2*pi*f_res/Q (ResonanceFinder ringdown)",
+  "output_face": "-x",
+  "atom_offsets_nm": [
+   200,
+   250,
+   300
+  ],
+  "thickness_um": 0.15,
+  "width_um": 0.5,
+  "scope": "EM-derived scalar proxies; not a full cavity-QED simulation"
+ },
+ "constant_index_n0": 1.997423958193913,
+ "default_subpixel": "PolarizedAveraging",
+ "kappa_2pi_GHz_tolerance": 32.0,
+ "subpixel_comparison_THz": {
+  "dispersive_polarized": 384.1841415490358,
+  "dispersive_staircase": 379.821054337481,
+  "constant_polarized": 384.18403801250645,
+  "constant_staircase": 379.7425866979177,
+  "constant_contour": 384.1918959044997
+ },
+ "ladder_nm": [
+  12,
+  10,
+  8,
+  6,
+  5,
+  4
+ ],
+ "ladder_dl_um": [
+  0.012,
+  0.01,
+  0.008,
+  0.006,
+  0.005,
+  0.004
+ ],
+ "ladder_fres_THz": [
+  384.24801109728014,
+  384.2469415065748,
+  384.20538578231054,
+  384.17454682568115,
+  384.18183796838343,
+  384.1190660688831
+ ],
+ "richardson": {
+  "f_inf_THz": 384.1584836209825,
+  "f_conv_THz": 384.1584836209825,
+  "f_inf_dl2_THz": 384.09050704625736,
+  "delta_GHz": 62.7718995003125,
+  "fine_dls_nm": [
+   4.0,
+   5.0,
+   6.0
+  ],
+  "n": 2.0,
+  "c": 0.0
+ },
+ "untrimmed_converged_detuning_GHz": -72.1041076808125,
+ "retrim_scale": 0.9998123415730459,
+ "retrimmed_fres_THz": 384.1822666806215,
+ "retrimmed_detuning_GHz": -48.3210480418125,
+ "delta_GHz": 62.7718995003125,
+ "within_one_linewidth": false,
+ "provenance": {
+  "git_commit": "783f634",
+  "tidy3d_version": "2.11.2",
+  "python": "3.12.13",
+  "f_D2_Hz": 384230587728663.3,
+  "lambda_D2_um": 0.7802410000000001,
+  "gamma_2pi_MHz": 6.0666,
+  "mu_D2_Cm": 3.58e-29,
+  "eta_fiber_assumed": 0.99,
+  "atom_offsets_um": [
+   0.2,
+   0.25,
+   0.3
+  ],
+  "atom_nominal_dz_um": 0.25,
+  "output_face": "-x",
+  "scope": "Classical EM only; g/C/eta are fixed-position two-level dipole-aligned proxies, not cavity-QED dynamics.",
+  "stage": "freq_resolution_campaign"
+ }
+}

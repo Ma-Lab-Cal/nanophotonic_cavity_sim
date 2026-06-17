@@ -1,0 +1,15 @@
+{
+ "selected_freq_THz": 383.9241670309722,
+ "linewidth_GHz": 31.293694408684328,
+ "resonances": [
+  {
+   "freq_THz": 383.9241670309722,
+   "detuning_GHz": -306.4206976910625,
+   "Q": 12268.419382418117,
+   "amplitude": 64465.19394860462,
+   "separation_linewidths": 0.0,
+   "is_selected": true
+  }
+ ],
+ "nearest_competitor_linewidths": null
+}

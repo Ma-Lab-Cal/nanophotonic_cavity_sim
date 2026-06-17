@@ -1,0 +1,78 @@
+{
+ "results": {
+  "6": {
+   "offsets_um": [
+    0.0,
+    0.0015,
+    0.003,
+    0.0045
+   ],
+   "fres_THz": [
+    384.17455053996116,
+    384.1504175691995,
+    384.14172739209914,
+    384.1641066248879
+   ],
+   "mean_THz": 384.157700531537,
+   "detuning_GHz": -72.8871971263125,
+   "std_GHz": 14.527485901175465,
+   "sem_GHz": 7.263742950587733
+  },
+  "5": {
+   "offsets_um": [
+    0.0,
+    0.00125,
+    0.0025,
+    0.00375
+   ],
+   "fres_THz": [
+    384.1818357928315,
+    384.1760830853814,
+    384.1658900857474,
+    384.17326471259855
+   ],
+   "mean_THz": 384.1742684191397,
+   "detuning_GHz": -56.319309523625,
+   "std_GHz": 6.62726830133633,
+   "sem_GHz": 3.313634150668165
+  },
+  "mesh_spread_GHz": 16.5678876026875,
+  "converged_detuning_GHz": -64.60325332496875,
+  "within_one_linewidth": true,
+  "retrim": {
+   "ideal_scale": 0.9998534231492173,
+   "ideal_detuning_GHz": -20.83052766975,
+   "scale_sensitivity_GHz_per_unit": -242117.23518670019,
+   "calibrated_scale": 0.9997673882675878,
+   "per_offset_detuning_GHz": [
+    8.395998480875,
+    -0.6657528124375,
+    -6.7559589538125,
+    0.120387143125
+   ],
+   "mean_detuning_GHz": 0.2736684644375,
+   "std_GHz": 6.226125441349072,
+   "total_uncertainty_GHz": 22.79401304403657,
+   "within_one_linewidth": true
+  }
+ },
+ "provenance": {
+  "git_commit": "783f634",
+  "tidy3d_version": "2.11.2",
+  "python": "3.12.13",
+  "f_D2_Hz": 384230587728663.3,
+  "lambda_D2_um": 0.7802410000000001,
+  "gamma_2pi_MHz": 6.0666,
+  "mu_D2_Cm": 3.58e-29,
+  "eta_fiber_assumed": 0.99,
+  "atom_offsets_um": [
+   0.2,
+   0.25,
+   0.3
+  ],
+  "atom_nominal_dz_um": 0.25,
+  "output_face": "-x",
+  "scope": "Classical EM only; g/C/eta are fixed-position two-level dipole-aligned proxies, not cavity-QED dynamics.",
+  "stage": "grid_offset"
+ }
+}

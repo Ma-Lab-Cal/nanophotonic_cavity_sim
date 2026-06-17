@@ -1,0 +1,5 @@
+# Regenerable diagnostics from validate_design.py; the JSON/CSV/MD datasets are tracked.
+*.log
+*.png
+*.pdf
+freq_resolution_defectonly.json

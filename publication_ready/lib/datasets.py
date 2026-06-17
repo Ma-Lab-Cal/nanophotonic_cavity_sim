@@ -29,16 +29,33 @@ def convention_block() -> dict:
         "fiber_efficiency": cfg.FIBER_EFFICIENCY,
         "dipole_moment_Cm": cfg.DIPOLE_MOMENT,
         "g_definition": "g = d*sqrt(omega*u_pol/(2*hbar*eps0*Integral[eps|E|^2]dV)), reported as g/2pi in Hz",
+        "g_transition_note": ("d = <J=1/2||er||J'=3/2> = 3.58e-29 C*m (J reduced dipole, Steck). "
+                              "For a specific |F,mF>->|F',mF'> transition and polarization, "
+                              "g = g_reduced * dipole_factor * |e.E_hat|, dipole_factor<=1 the "
+                              "cycling-normalized amplitude (1.000 sigma+ cycling; 0.775=sqrt(3/5); "
+                              "0.394=sqrt(7/45); 0.577=1/sqrt(3) line-averaged). g is NOT universal."),
         "C_definition": "C = 4 g^2 / (kappa_tot * gamma)",
         "eta_definition": "eta = beta * C/(C+1) * eta_fiber",
-        "beta_definition": "beta = kappa(-x) / kappa_directional(total)",
+        "eta_chip_definition": "eta_chip = beta * C/(C+1)  (no fiber factor)",
+        "eta_with_fiber_definition": "eta_with_fiber = eta_chip * eta_fiber, eta_fiber=0.99 ASSUMED external collection",
+        "beta_definition": "HEADLINE beta = beta_flux = kappa(-x)/kappa_directional(total) (directional flux ratio)",
+        "beta_guided_definition": ("beta_guided = beta_flux * (power in all guided modes / total plane power), "
+                                   "from a mode-expansion ModeMonitor co-located with a flux monitor in the "
+                                   "output (-x) waveguide; beta_fund uses the fundamental mode only. "
+                                   "Ordering beta_flux >= beta_guided >= beta_fund."),
         "Vmode_definition": "V = Integral[eps|E|^2]dV / max(eps|E|^2), in (lambda/n)^3, NO legacy symmetry factor",
-        "kappa_tot": "linewidth kappa = 2*pi*f_res/Q (ResonanceFinder ringdown)",
+        "Vmode_dispersive_note": ("legacy uses eps|E|^2; the dispersive convention replaces eps by "
+                                  "Re[d(omega*eps)/domega] in SiN (a ~1-2% correction, reported separately)"),
+        "kappa_tot": "linewidth kappa = 2*pi*f_res/Q (ResonanceFinder ringdown); NOTE != kappa_directional(total)",
+        "f_res_numerical_note": ("absolute f_res carries a mesh numerical uncertainty; the converged value "
+                                 "and +/- delta come from the full-beam-refined mesh ladder (validate_design.py, "
+                                 "freq_resolution.json), not a single production mesh"),
         "output_face": cfg.OUTPUT_FACE,
         "atom_offsets_nm": [int(z * 1000) for z in cfg.ATOM_SURFACE_OFFSETS_UM],
         "thickness_um": cfg.BASELINE_CONTEXT["thickness"],
         "width_um": cfg.BASELINE_CONTEXT["width"],
-        "scope": "EM-derived scalar proxies; not a full cavity-QED simulation",
+        "scope": ("EM-derived scalar proxies (fixed-position, two-level, dipole-aligned); "
+                  "not a cavity-QED / master-equation / quantum-trajectory simulation"),
     }
 
 

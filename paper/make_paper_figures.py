@@ -86,77 +86,126 @@ def load_record():
 # FIG 1 — platform schematic + final device + cross-section
 # ═══════════════════════════════════════════════════════════════════════════
 
+def _draw_atom(ax, x, y, r=0.15, color="#7a52c4", z=8):
+    """An atom drawn as a fuzzy electron-cloud blob (layered translucent rings
+    around a small nucleus)."""
+    for rr, a in ((1.9, 0.10), (1.45, 0.15), (1.05, 0.24), (0.65, 0.42)):
+        ax.add_patch(plt.Circle((x, y), r * rr, facecolor=color, edgecolor="none",
+                                alpha=a, zorder=z))
+    ax.add_patch(plt.Circle((x, y), r * 0.22, facecolor="#2e1d59",
+                            edgecolor="none", zorder=z + 1))
+
+
+def _draw_photon(ax, x0, y0, x1, y1, n=4, amp=0.12, color="#e2861c", lw=1.7,
+                 z=5, arrow=True):
+    """A 'wiggling photon': a sine wave from (x0,y0) to (x1,y1) tapered at the
+    ends, with an arrowhead at the tip."""
+    L = float(np.hypot(x1 - x0, y1 - y0))
+    if L == 0:
+        return
+    t = np.linspace(0, 1, 120)
+    ux, uy = (x1 - x0) / L, (y1 - y0) / L           # along the path
+    px, py = -uy, ux                                 # perpendicular
+    env = np.clip(np.sin(np.pi * t) * 1.4, 0, 1)     # taper both ends
+    w = amp * env * np.sin(2 * np.pi * n * t)
+    X = x0 + ux * t * L + px * w
+    Y = y0 + uy * t * L + py * w
+    ax.plot(X, Y, color=color, lw=lw, zorder=z, solid_capstyle="round")
+    if arrow:
+        ax.add_patch(FancyArrowPatch((X[-3], Y[-3]), (x1, y1), arrowstyle="-|>",
+                                     mutation_scale=9, lw=lw, color=color, zorder=z))
+
+
 def draw_schematic(ax):
-    """Top-down concept: suspended PhC fingers beyond an etched substrate;
-    tweezer-trapped atoms transported over a series of cavities, transduced to
-    flying photonic qubits collected into fiber."""
-    ax.set_xlim(0, 10.4)
-    ax.set_ylim(0.2, 6.0)
+    """Concept of the interconnect: a tweezer-trapped atom (electron cloud) above
+    a suspended PhC cavity maps its qubit state onto a flying photon that is
+    collected into fiber and sent to a remote node; an array of such cavities,
+    over which atoms are transported, scales the link."""
+    ax.set_xlim(0, 11.7)
+    ax.set_ylim(0, 5.55)
+    ax.set_aspect("equal")
     ax.axis("off")
 
-    # substrate (left), etched/undercut edge at x=2.4
-    ax.add_patch(Rectangle((0, 0.2), 2.4, 5.8, facecolor="#cdc6ba",
+    # suspended substrate with the etched undercut
+    ax.add_patch(Rectangle((0, 0.35), 2.15, 4.3, facecolor="#cdc6ba",
                            edgecolor="#7a7366", hatch="////", lw=0.8, zorder=1))
-    ax.text(1.2, 0.75, "Si\nsubstrate", ha="center", va="center", fontsize=7)
-    ax.annotate("etched undercut", xy=(2.4, 4.0), xytext=(1.45, 5.55),
-                fontsize=6.3, ha="center", va="center", color="#5a5346",
-                arrowprops=dict(arrowstyle="->", lw=0.6, color="#5a5346"))
+    ax.text(1.05, 0.85, "Si\nsubstrate", ha="center", va="center", fontsize=7)
+    ax.annotate("etched\nundercut", xy=(2.15, 3.5), xytext=(1.05, 2.55),
+                fontsize=6.0, ha="center", va="center", color="#4a4438",
+                arrowprops=dict(arrowstyle="->", lw=0.5, color="#5a5346"))
 
-    finger_y = [1.25, 3.0, 4.75]
-    fh = 0.5
+    finger_y = [1.05, 2.45, 3.85]
+    fh = 0.40
+    xL, xR, xd = 1.75, 7.0, 3.95
     for yc in finger_y:
-        ax.add_patch(FancyBboxPatch((1.9, yc - fh / 2), 6.7, fh,
-                                    boxstyle="round,pad=0.0,rounding_size=0.05",
+        # cavity-mode glow at the defect
+        for rr, a in ((0.95, 0.12), (0.62, 0.20), (0.34, 0.32)):
+            ax.add_patch(Ellipse((xd, yc), rr, rr * 0.6, facecolor="#ffcf57",
+                                 edgecolor="none", alpha=a, zorder=2))
+        ax.add_patch(FancyBboxPatch((xL, yc - fh / 2), xR - xL, fh,
+                                    boxstyle="round,pad=0,rounding_size=0.05",
                                     facecolor="#9bbbd6", edgecolor="#3f5d77",
-                                    lw=0.8, zorder=2))
-        xs = np.linspace(2.9, 8.1, 22)
-        for x in xs:
-            r = 0.09 if abs(x - 5.5) > 0.55 else 0.055
-            ax.add_patch(Ellipse((x, yc), 0.15, 2 * r, facecolor="white",
-                                 edgecolor="#3f5d77", lw=0.4, zorder=3))
-    ax.text(8.6, finger_y[-1] + 0.42, "SiN PhC fingers", fontsize=6.8,
-            ha="right", va="bottom", color="#27435a")
+                                    lw=0.8, zorder=3))
+        for x in np.linspace(xL + 0.7, xR - 0.25, 21):
+            r = 0.08 if abs(x - xd) > 0.5 else 0.045
+            ax.add_patch(Ellipse((x, yc), 0.13, 2 * r, facecolor="white",
+                                 edgecolor="#3f5d77", lw=0.35, zorder=4))
+        # the cavity maps the atomic state onto a photon that leaves the waveguide
+        _draw_photon(ax, xd + 0.35, yc, xR + 0.95, yc, n=4, amp=0.10)
+    ax.text(xd, finger_y[0] - 0.42, "cavity mode", fontsize=6.0, ha="center",
+            va="top", color="#a9780a")
+    ax.text(6.5, finger_y[0] - 0.42, "emitted photon", fontsize=6.0,
+            ha="center", va="top", color="#c4730f")
+    ax.annotate("SiN photonic-crystal cavity", xy=(5.4, finger_y[1] - 0.2),
+                xytext=(5.4, finger_y[1] - 0.82), fontsize=6.1, ha="center",
+                va="top", color="#27435a",
+                arrowprops=dict(arrowstyle="->", lw=0.5, color="#27435a"))
 
-    # trapped atoms at the defect sites of the middle finger
-    yc = finger_y[1]
-    atom_x = [4.4, 5.5, 6.6]
-    for x in atom_x:
-        ax.add_patch(plt.Circle((x, yc + 0.42), 0.115, facecolor="#d24b4b",
-                                edgecolor="k", lw=0.4, zorder=6))
-    ax.annotate("trapped atoms", xy=(4.4, yc + 0.3), xytext=(4.4, yc - 0.62),
-                fontsize=6.5, color="#a82c2c", ha="center", va="top",
-                arrowprops=dict(arrowstyle="->", lw=0.6, color="#a82c2c"))
+    # tweezer-trapped electron-cloud atoms above the TOP finger (open space above
+    # leaves room for the labels); the middle finger feeds the flying qubit below.
+    ycm = finger_y[1]
+    yact = finger_y[2]
+    atom_x = [xd, xd + 1.05, xd + 2.1]
+    ax.plot([xd, xd], [yact + 0.16, yact + 0.42], color="#7a52c4", ls=":", lw=0.9,
+            zorder=5)
+    for i, x in enumerate(atom_x):
+        _draw_atom(ax, x, yact + 0.55, r=0.15 if i == 0 else 0.115)
+    ax.annotate("trapped atom (electron cloud)", xy=(xd, yact + 0.66),
+                xytext=(xd + 0.15, yact + 1.32), fontsize=6.2, color="#4a2f8a",
+                ha="center", va="center",
+                arrowprops=dict(arrowstyle="->", lw=0.55, color="#4a2f8a"))
+    ax.add_patch(FancyArrowPatch((atom_x[1] + 0.35, yact + 0.55),
+                                 (atom_x[-1] + 0.55, yact + 0.55), arrowstyle="-|>",
+                                 mutation_scale=8, lw=0.9, color="#555", zorder=7))
+    ax.text(atom_x[-1] + 0.6, yact + 0.55, "transport", ha="left", va="center",
+            fontsize=6.0, color="#444")
 
-    # transport: atom row slides along the cavity series (arrow above middle finger)
-    ax.add_patch(FancyArrowPatch((4.2, yc + 1.05), (6.9, yc + 1.05),
-                                 arrowstyle="-|>", mutation_scale=11,
-                                 lw=1.2, color="#444", zorder=7))
-    ax.text(5.55, yc + 1.2, "transport over cavities", ha="center", va="bottom",
-            fontsize=6.5, color="#333")
-
-    # transduction: photon from each finger end -> bus -> fiber -> flying qubit
-    for yc2 in finger_y:
-        ax.add_patch(FancyArrowPatch((8.7, yc2), (9.2, yc2), arrowstyle="-|>",
-                                     mutation_scale=8, lw=1.0, color="#2c7fb8",
-                                     zorder=6))
-    ax.plot([9.2, 9.2], [finger_y[0], finger_y[-1]], color="#2c7fb8", lw=1.4)
-    ax.add_patch(FancyArrowPatch((9.2, finger_y[1]), (9.7, finger_y[1]),
-                                 arrowstyle="-|>", mutation_scale=11, lw=1.7,
-                                 color="#2c7fb8"))
-    ax.text(9.78, finger_y[1], "flying\nphotonic\nqubits", ha="left",
-            va="center", fontsize=6.6, color="#1f6391")
+    # collection: photons -> fiber -> flying photonic qubit -> remote node
+    xf = 8.2
+    ax.plot([xf, xf], [finger_y[0] - 0.25, finger_y[-1] + 0.25], color="#555",
+            lw=2.4, solid_capstyle="round", zorder=4)
+    ax.text(xf + 0.16, finger_y[-1] - 0.05, "fiber", fontsize=6.2, ha="left",
+            va="center", color="#444")
+    _draw_photon(ax, xf + 0.12, ycm, 11.0, ycm, n=4, amp=0.15, color="#d24b4b",
+                 lw=1.9)
+    ax.text(11.15, ycm + 0.5, "flying\nphotonic\nqubit", fontsize=6.4,
+            ha="left", va="center", color="#a82c2c")
+    ax.annotate("to remote node /\nquantum network", xy=(11.0, ycm),
+                xytext=(9.7, finger_y[0] - 0.5), fontsize=5.9, ha="center",
+                va="top", color="#777",
+                arrowprops=dict(arrowstyle="->", lw=0.5, color="#999"))
 
 
 def fig1():
     layout, ctx, par, fc = load_final_layout()
     pos = np.asarray(layout["positions"])
-    fig = plt.figure(figsize=(WIDE, 4.7))
-    gs = fig.add_gridspec(3, 3, height_ratios=[1.25, 0.55, 1.0],
-                          hspace=0.55, wspace=0.32)
+    fig = plt.figure(figsize=(WIDE, 5.3))
+    gs = fig.add_gridspec(3, 3, height_ratios=[1.55, 0.5, 1.0],
+                          hspace=0.5, wspace=0.32)
 
     ax_s = fig.add_subplot(gs[0, :])
     draw_schematic(ax_s)
-    panel(ax_s, "a")
+    panel(ax_s, "a", y=0.99)
 
     # (b) full device top view
     ax_b = fig.add_subplot(gs[1, :])
@@ -300,10 +349,10 @@ def fig2():
         ax.set_ylabel("")
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.text(0.99, 0.84, f"iter {it}", transform=ax.transAxes, ha="right",
-                va="top", fontsize=7,
-                bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="none", alpha=0.8))
-        panel(ax, "cde"[r])
+        ax.margins(y=0.18)             # headroom so the label clears the device
+        ax.text(0.015, 0.94, f"({'cde'[r]}) iter {it}", transform=ax.transAxes,
+                ha="left", va="top", fontsize=7.5, fontweight="bold",
+                bbox=dict(boxstyle="round,pad=0.18", fc="white", ec="0.7", lw=0.4))
     _save(fig, "fig2_optimization.pdf")
 
 
@@ -311,19 +360,32 @@ def fig2():
 # FIG 3 — field cross-sections + band structure
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _field_panel(ax, fields, tag, comp, cmap, label):
+def _field_panel(ax, fields, tag, comp, cmap, label, signed=False,
+                 show_xlabel=True):
     A = np.asarray(fields[f"{tag}_{comp}"])
     dims = [str(x) for x in fields[f"{tag}_dims"]]
     c0 = np.asarray(fields[f"{tag}_{dims[0]}"])
     c1 = np.asarray(fields[f"{tag}_{dims[1]}"])
-    im = ax.pcolormesh(c0, c1, A.T, cmap=cmap, shading="auto", rasterized=True)
-    ax.set_xlabel(rf"${dims[0]}$ ($\mu$m)")
+    kw = dict(cmap=cmap, shading="auto", rasterized=True)
+    if signed:
+        vmax = float(np.nanmax(np.abs(A)))
+        kw.update(vmin=-vmax, vmax=vmax)
+    im = ax.pcolormesh(c0, c1, A.T, **kw)
+    if show_xlabel:
+        ax.set_xlabel(rf"${dims[0]}$ ($\mu$m)")
     ax.set_ylabel(rf"${dims[1]}$ ($\mu$m)")
-    ax.set_aspect("equal")
-    cb = ax.figure.colorbar(im, ax=ax, fraction=0.046, pad=0.03)
+    cb = ax.figure.colorbar(im, ax=ax, fraction=0.046, pad=0.02)
     cb.set_label(label, fontsize=6.5)
     cb.ax.tick_params(labelsize=6)
     return im
+
+
+def _true_box(ax):
+    """Set the axes box aspect to the true data aspect (height/width). Unlike
+    set_aspect('equal'), this plays well with constrained_layout + gridspec."""
+    x0, x1 = ax.get_xlim()
+    y0, y1 = ax.get_ylim()
+    ax.set_box_aspect(abs(y1 - y0) / abs(x1 - x0))
 
 
 def fig3():
@@ -331,39 +393,59 @@ def fig3():
     bands_f = datasets.read_json(paths.DATA_DIR / "bands_final.json")
     za = float(fields["atom_height_um"])
 
-    fig = plt.figure(figsize=(WIDE, 5.7), constrained_layout=True)
-    gs = fig.add_gridspec(3, 2, height_ratios=[0.85, 1.0, 1.25], wspace=0.05)
+    fig = plt.figure(figsize=(WIDE, 6.6), constrained_layout=True)
+    gs = fig.add_gridspec(2, 1, height_ratios=[1.0, 2.55], hspace=0.16)
+    gs_top = gs[0].subgridspec(1, 2, width_ratios=[1.0, 1.4], wspace=0.30)
+    gs_bot = gs[1].subgridspec(3, 1, hspace=0.10)
 
-    # (a) midplane xy, full width (the long standing-wave mode)
-    ax = fig.add_subplot(gs[0, :])
-    _field_panel(ax, fields, "midplane_z", "Eabs", "magma", r"$|E|$ (arb.)")
-    ax.set_xlim(-2.6, 2.6)
-    ax.set_ylim(-0.55, 0.55)
-    ax.set_title(r"beam midplane ($z=0$)", fontsize=7.5)
-    panel(ax, "a", color="w")
-
-    # (b) longitudinal xz at y=0, atom height marked
-    ax = fig.add_subplot(gs[1, 0])
-    _field_panel(ax, fields, "vertical_y", "Eabs", "magma", r"$|E|$ (arb.)")
-    ax.set_xlim(-2.6, 2.6)
-    ax.set_ylim(-0.7, 0.75)
-    ax.axhline(za, color="cyan", ls="--", lw=0.9)
-    ax.text(-2.5, za + 0.04, "atom", color="cyan", fontsize=6.5, va="bottom")
-    ax.set_title(r"longitudinal ($y=0$)", fontsize=7.5)
-    panel(ax, "b", color="w")
-
-    # (c) defect cross-section yz at x=0
-    ax = fig.add_subplot(gs[1, 1])
+    # (a) defect cross-section yz at x=0 (near-square) -- top left
+    ax = fig.add_subplot(gs_top[0, 0])
     _field_panel(ax, fields, "vertical_x", "Eabs", "magma", r"$|E|$ (arb.)")
     ax.set_xlim(-0.85, 0.85)
-    ax.set_ylim(-0.7, 0.75)
+    ax.set_ylim(-0.55, 0.62)
+    _true_box(ax)
     ax.axhline(za, color="cyan", ls="--", lw=0.9)
-    ax.text(-0.82, za + 0.04, "atom", color="cyan", fontsize=6.5, va="bottom")
+    ax.text(-0.82, za + 0.03, "atom", color="cyan", fontsize=6.5, va="bottom")
     ax.set_title(r"defect cut ($x=0$)", fontsize=7.5)
-    panel(ax, "c", color="w")
+    panel(ax, "a", color="w")
 
-    # band structure (mirror + defect cells)
-    ax = fig.add_subplot(gs[2, :])
+    # (b) Bloch band structure -- top right
+    axb = fig.add_subplot(gs_top[0, 1])
+
+    # (c) beam midplane xy |E| -- full width, true aspect
+    axc = fig.add_subplot(gs_bot[0])
+    _field_panel(axc, fields, "midplane_z", "Eabs", "magma", r"$|E|$ (arb.)",
+                 show_xlabel=False)
+    axc.set_xlim(-2.6, 2.6)
+    axc.set_ylim(-0.5, 0.5)
+    _true_box(axc)
+    axc.set_title(r"beam midplane ($z=0$)", fontsize=7.5)
+    panel(axc, "c", color="w")
+
+    # (d) longitudinal xz |E| + atom height -- full width
+    axd = fig.add_subplot(gs_bot[1], sharex=axc)
+    _field_panel(axd, fields, "vertical_y", "Eabs", "magma", r"$|E|$ (arb.)",
+                 show_xlabel=False)
+    axd.set_ylim(-0.55, 0.62)
+    _true_box(axd)
+    axd.axhline(za, color="cyan", ls="--", lw=0.9)
+    axd.text(-2.5, za + 0.04, "atom", color="cyan", fontsize=6.5, va="bottom")
+    axd.set_title(r"longitudinal ($y=0$),  $|E|$", fontsize=7.5)
+    panel(axd, "d", color="w")
+
+    # (e) longitudinal xz Re(Ey) -- the standing-wave sign structure
+    axe = fig.add_subplot(gs_bot[2], sharex=axc)
+    _field_panel(axe, fields, "vertical_y", "Ey", "RdBu_r", r"$\mathrm{Re}\,E_y$",
+                 signed=True)
+    axe.set_ylim(-0.55, 0.62)
+    _true_box(axe)
+    axe.axhline(za, color="0.25", ls="--", lw=0.7)
+    axe.set_title(r"longitudinal ($y=0$),  $\mathrm{Re}\,E_y$ (standing wave)",
+                  fontsize=7.5)
+    panel(axe, "e")
+
+    # band structure (mirror + defect cells) -- panel (b)
+    ax = axb
     cells = [("final_mirror", "C0", "mirror cell"),
              ("final_defect", "C1", "defect cell")]
     for key, color, lab in cells:
@@ -389,8 +471,10 @@ def fig3():
     ax.set_ylim(330, 470)
     ax.set_xlabel(r"$k_x$ ($2\pi/a$)")
     ax.set_ylabel("frequency (THz)")
-    ax.legend(loc="upper left", ncol=2, fontsize=6, framealpha=0.85)
-    panel(ax, "d")
+    ax.set_title("Bloch band structure", fontsize=7.5)
+    ax.legend(loc="upper left", ncol=1, fontsize=5.4, framealpha=0.85,
+              handletextpad=0.4, labelspacing=0.3)
+    panel(ax, "b")
     _save(fig, "fig3_fields_bands.pdf")
 
 

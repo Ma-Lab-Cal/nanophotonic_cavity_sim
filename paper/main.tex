@@ -305,20 +305,6 @@ together), the trim changes $\beta$, $C$, and $\eta$ by less than $1\%$.
 
 \subsection{Simulation parameters and convergence}
 
-\begin{figure}[t]
-\includegraphics[width=\columnwidth]{figures/fig5_convergence.pdf}
-\caption{\label{fig:conv}
-\textbf{Resonant-frequency convergence.}
-(a) On a single mesh, the absolute $f_\mathrm{res}$ scatters by $\sim\!80$--$130
-\unit{GHz}$ as the mesh is refined---grid-alignment noise at the curved hole
-boundaries (shading: one cavity linewidth).
-(b) Grid-offset averaging (averaging $f_\mathrm{res}$ over sub-cell shifts of the
-structure at fixed mesh) collapses the noise: the offset-mean (diamonds) is
-mesh-consistent to $0.5$ linewidths between $5$ and $6\unit{nm}$, and the
-sensitivity-calibrated in-plane trim places the resonance on the D2 line (star,
-$+0.3\unit{GHz}$), within one linewidth.}
-\end{figure}
-
 Forward and verification simulations use the measured dispersive SiN index, an
 $8\unit{ps}$ run time (one to two cavity ring-downs, so the field-energy and flux
 monitors sample a strong-field epoch), perfectly matched layers on all boundaries,
@@ -608,6 +594,20 @@ and extracts the mode-expansion branching ratio; the verified per-design dataset
 metric-convention block) underlying every figure; the final-device geometry (GDS
 and per-hole parameter tables); and one-command regeneration scripts. A repository
 DOI will be provided on publication.
+
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{figures/fig5_convergence.pdf}
+\caption{\label{fig:conv}
+\textbf{Resonant-frequency convergence.}
+(a) On a single mesh, the absolute $f_\mathrm{res}$ scatters by $\sim\!80$--$130
+\unit{GHz}$ as the mesh is refined---grid-alignment noise at the curved hole
+boundaries (shading: one cavity linewidth).
+(b) Grid-offset averaging (averaging $f_\mathrm{res}$ over sub-cell shifts of the
+structure at fixed mesh) collapses the noise: the offset-mean (diamonds) is
+mesh-consistent to $0.5$ linewidths between $5$ and $6\unit{nm}$, and the
+sensitivity-calibrated in-plane trim places the resonance on the D2 line (star,
+$+0.3\unit{GHz}$), within one linewidth.}
+\end{figure}
 
 \bibliography{refs}
 

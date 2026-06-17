@@ -282,22 +282,24 @@ def fig2():
     best = np.maximum.accumulate(d_eta)
     ETA_BASE = 0.083                                          # hand-tuned baseline (design_1)
 
-    fig = plt.figure(figsize=(WIDE, 3.1), constrained_layout=True)
-    gs = fig.add_gridspec(3, 2, width_ratios=[1.5, 1.0])
+    fig = plt.figure(figsize=(WIDE, 4.3), constrained_layout=True)
+    gs = fig.add_gridspec(2, 1, height_ratios=[1.55, 1.2], hspace=0.16)
+    gs_top = gs[0].subgridspec(1, 2, width_ratios=[1.05, 1.0], wspace=0.24)
+    gs_bot = gs[1].subgridspec(3, 1, hspace=0.22)
 
-    # (a) PRIMARY: verified interface efficiency vs iteration ------------------
-    axa = fig.add_subplot(gs[0:2, 0])
+    # (a) verified interface efficiency vs iteration (top-left)
+    axa = fig.add_subplot(gs_top[0, 0])
     axa.axhline(ETA_BASE, ls=":", color="0.5", lw=1,
-                label=f"hand-tuned baseline ({ETA_BASE:.2f})")
-    axa.plot(d_it, best, "-", color="C3", lw=2.6, zorder=3, label="best so far")
+                label=f"baseline ({ETA_BASE:.2f})")
+    axa.plot(d_it, best, "-", color="C3", lw=2.4, zorder=3, label="best so far")
     axa.plot(d_it, d_eta, "o-", color="C2", ms=4, lw=0.8, alpha=0.7, zorder=2,
-             label=r"verified $\eta$ (non-gradient checks)")
+             label=r"verified $\eta$")
     if bnd is not None:
         axa.axvline(bnd - 0.5, color="0.6", ls="--", lw=0.9)
-        axa.text(bnd - 0.8, 0.12, "layout", ha="right", va="bottom", fontsize=7,
-                 color="0.4")
-        axa.text(bnd + 0.2, 0.12, "+shapes", ha="left", va="bottom", fontsize=7,
-                 color="0.4")
+        axa.text(bnd - 0.6, 0.9, "layout", ha="right", va="top", fontsize=6.3,
+                 color="0.45")
+        axa.text(bnd + 0.3, 0.9, "shapes", ha="left", va="top", fontsize=6.3,
+                 color="0.45")
     axa.annotate(f"{d_eta[0]:.2f}", (d_it[0], d_eta[0]), textcoords="offset points",
                  xytext=(7, 2), fontsize=7, color="C2")
     axa.annotate(f"{d_eta[-1]:.2f}", (d_it[-1], d_eta[-1]), textcoords="offset points",
@@ -305,15 +307,12 @@ def fig2():
     axa.set_ylim(0, 0.95)
     axa.set_ylabel(r"verified efficiency $\eta$")
     axa.set_xlabel("iteration")
-    axa.set_title(f"optimization time {total_h:.1f} h", fontsize=8)
-    axa.legend(fontsize=6.2, loc="lower right", framealpha=0.9)
+    axa.set_title(f"optimization time {total_h:.1f} h", fontsize=7.5)
+    axa.legend(fontsize=6.0, loc="lower right", framealpha=0.9)
     panel(axa, "a")
 
-    # (b) SIDE: the verified loss -log(eta) decreases monotonically (best-so-far)
-    # to the delivered design. (The full proxy objective also carries a resonance
-    # penalty whose transients are absorbed by the trim; not shown -- the proxy
-    # surrogate -log(eta~) is drawn faint only to show what the optimizer minimized.)
-    axb = fig.add_subplot(gs[2, 0])
+    # (b) verified loss -log(eta): best-so-far falls monotonically to the design
+    axb = fig.add_subplot(gs_top[0, 1])
     d_loss = -np.log(d_eta)
     best_loss = np.minimum.accumulate(d_loss)
     axb.semilogy(iters, -np.log(np.clip(eta_tilde, 1e-4, None)), color="0.78",
@@ -330,17 +329,16 @@ def fig2():
                  textcoords="offset points", xytext=(-20, 4), fontsize=7, color="C3")
     axb.set_xlabel("iteration")
     axb.set_ylabel(r"objective $-\log\eta$")
-    axb.legend(fontsize=5.8, ncol=3, loc="upper center", columnspacing=1.0,
-               handlelength=1.3, framealpha=0.9)
+    axb.legend(fontsize=5.6, loc="upper right", framealpha=0.9, labelspacing=0.3)
     axb.set_ylim(0.1, 30)
     panel(axb, "b")
 
-    # (c)-(e) intermediate structure snapshots stacked on the right -----------
+    # (c)-(e) full-width structure snapshots: the hole schedule evolving
     snap_iters = [iters[0], iters[len(iters) // 3], iters[-1]]
     from inverse_design.visualization import layout_from_entry
     by_iter = {e["params"]["iteration"]: e for e in rec}
     for r, it in enumerate(snap_iters):
-        ax = fig.add_subplot(gs[r, 1])
+        ax = fig.add_subplot(gs_bot[r])
         lay, c = layout_from_entry(by_iter[it])
         draw_layout_topview(lay, c, ax)
         ax.set_aspect("auto")
@@ -349,10 +347,10 @@ def fig2():
         ax.set_ylabel("")
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.margins(y=0.18)             # headroom so the label clears the device
-        ax.text(0.015, 0.94, f"({'cde'[r]}) iter {it}", transform=ax.transAxes,
-                ha="left", va="top", fontsize=7.5, fontweight="bold",
-                bbox=dict(boxstyle="round,pad=0.18", fc="white", ec="0.7", lw=0.4))
+        ax.margins(y=0.16)             # headroom so the label clears the device
+        ax.text(0.006, 0.93, f"({'cde'[r]}) iter {it}", transform=ax.transAxes,
+                ha="left", va="top", fontsize=7.2, fontweight="bold",
+                bbox=dict(boxstyle="round,pad=0.16", fc="white", ec="0.7", lw=0.4))
     _save(fig, "fig2_optimization.pdf")
 
 

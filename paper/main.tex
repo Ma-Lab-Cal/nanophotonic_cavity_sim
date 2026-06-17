@@ -390,21 +390,31 @@ exposes the mode to the trap region $250\unit{nm}$ above the surface
 \includegraphics[width=\textwidth]{figures/fig2_optimization.pdf}
 \caption{\label{fig:opt}
 \textbf{Inverse-design trajectory.}
-(a) Objective $\mathcal L$ [Eq.~\eqref{eq:loss}] versus iteration; the dashed line
-marks the layout$\to$shapes stage boundary. The mid-run excursion is the
-frequency penalty acting as the resonance temporarily drifts off target.
-(b)--(d) Top-view snapshots of the structure at early, intermediate, and final
+(a) Verified interface efficiency $\eta$ from the periodic non-gradient
+(high-resolution time-domain) checks versus iteration: it climbs from $0.01$ to
+$0.83$, and the best-so-far envelope (red) shows that the optimizer reaches its
+final efficiency by the end of the layout stage, with the shape stage refining it.
+The dashed line marks the layout$\to$shapes boundary; the dotted line is the
+hand-tuned baseline.
+(b) Decomposition of the proxy objective $\mathcal L$ [Eq.~\eqref{eq:loss}]: the
+interface term $\mathcal L_\mathrm{int}=-\log\tilde\eta$ falls smoothly, while the
+large transients in $\mathcal L$ are carried almost entirely by the resonance
+penalty $\mathcal L_\mathrm{freq}$ when the frequency temporarily drifts off
+target.
+(c)--(e) Top-view snapshots of the structure at early, intermediate, and final
 iterations, showing the evolving hole schedule.}
 \end{figure*}
 
-Figure~\ref{fig:opt} traces the optimization. The objective
-[Eq.~\eqref{eq:loss}] falls from its initial value as the optimizer first opens
-the output port---rapidly raising $\beta$ and hence $\eta$---before the frequency
-penalty pulls the resonance back toward the atomic line and the shape stage
-refines the mode; the intermediate excursion in $\mathcal L$ is precisely this
-frequency penalty acting when the resonance wanders, an honest signature of the
-multi-objective landscape. The structure snapshots
-[Fig.~\ref{fig:opt}(b)--(d)] show the hole schedule evolving from the
+Figure~\ref{fig:opt} traces the optimization. The verified efficiency
+[Fig.~\ref{fig:opt}(a)] climbs from $\eta=0.01$ to $0.83$: the optimizer first
+opens the output port---rapidly raising $\beta$ and hence $\eta$---reaching
+near-final efficiency by the end of the layout stage, after which the shape stage
+refines the mode. Decomposing the proxy objective [Fig.~\ref{fig:opt}(b)] shows
+that its interface term $-\log\tilde\eta$ falls smoothly, while the large
+transients are carried by the resonance penalty when the frequency temporarily
+drifts off target---an honest signature of the multi-objective landscape, not a
+failure of the interface optimization. The structure snapshots
+[Fig.~\ref{fig:opt}(c)--(e)] show the hole schedule evolving from the
 band-engineered seed to the final graded profile.
 
 \subsection{Mode structure and band engineering}

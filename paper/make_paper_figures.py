@@ -220,29 +220,65 @@ def fig2():
     rec = load_record()
     iters = [e["params"]["iteration"] for e in rec]
     losses = [e["loss"] for e in rec]
+    L_int = [e["perf"]["proxy"]["L_phys"] for e in rec]      # interface term, -log eta~
+    L_freq = [e["perf"]["proxy"]["L_freq"] for e in rec]     # resonance penalty
     stages = [e["params"].get("stage", "") for e in rec]
-    # stage A->B boundary
     bnd = next((iters[i] for i in range(1, len(stages))
                 if stages[i] != stages[i - 1]), None)
     total_h = sum(e["time"]["duration_s"] for e in rec) / 3600.0
 
-    fig = plt.figure(figsize=(WIDE, 2.7), constrained_layout=True)
-    gs = fig.add_gridspec(3, 2, width_ratios=[1.3, 1.0])
+    # verified (non-gradient) diagnostics
+    diag = [(e["params"]["iteration"], e["perf"]["diagnostic"])
+            for e in rec if e["perf"].get("diagnostic")]
+    d_it = np.array([it for it, _ in diag])
+    d_eta = np.array([d["eta_atom"] for _, d in diag])
+    best = np.maximum.accumulate(d_eta)
+    ETA_BASE = 0.083                                          # hand-tuned baseline (design_1)
 
-    ax = fig.add_subplot(gs[:, 0])
-    ax.plot(iters, losses, "o-", ms=3, color="C0")
+    fig = plt.figure(figsize=(WIDE, 3.1), constrained_layout=True)
+    gs = fig.add_gridspec(3, 2, width_ratios=[1.5, 1.0])
+
+    # (a) PRIMARY: verified interface efficiency vs iteration ------------------
+    axa = fig.add_subplot(gs[0:2, 0])
+    axa.axhline(ETA_BASE, ls=":", color="0.5", lw=1,
+                label=f"hand-tuned baseline ({ETA_BASE:.2f})")
+    axa.plot(d_it, best, "-", color="C3", lw=2.6, zorder=3, label="best so far")
+    axa.plot(d_it, d_eta, "o-", color="C2", ms=4, lw=0.8, alpha=0.7, zorder=2,
+             label=r"verified $\eta$ (non-gradient checks)")
     if bnd is not None:
-        ax.axvline(bnd - 0.5, color="0.5", ls="--", lw=0.9)
-        ax.text(bnd - 1, max(losses) * 0.97, "layout", ha="right", va="top",
-                fontsize=7, color="0.4")
-        ax.text(bnd, max(losses) * 0.97, "  +shapes", ha="left", va="top",
-                fontsize=7, color="0.4")
-    ax.set_xlabel("iteration")
-    ax.set_ylabel(r"objective $\mathcal{L}$")
-    ax.set_title(f"optimization time {total_h:.1f} h", fontsize=8)
-    panel(ax, "a")
+        axa.axvline(bnd - 0.5, color="0.6", ls="--", lw=0.9)
+        axa.text(bnd - 0.8, 0.12, "layout", ha="right", va="bottom", fontsize=7,
+                 color="0.4")
+        axa.text(bnd + 0.2, 0.12, "+shapes", ha="left", va="bottom", fontsize=7,
+                 color="0.4")
+    axa.annotate(f"{d_eta[0]:.2f}", (d_it[0], d_eta[0]), textcoords="offset points",
+                 xytext=(7, 2), fontsize=7, color="C2")
+    axa.annotate(f"{d_eta[-1]:.2f}", (d_it[-1], d_eta[-1]), textcoords="offset points",
+                 xytext=(-20, 3), fontsize=7, color="C3")
+    axa.set_ylim(0, 0.95)
+    axa.set_ylabel(r"verified efficiency $\eta$")
+    axa.set_xlabel("iteration")
+    axa.set_title(f"optimization time {total_h:.1f} h", fontsize=8)
+    axa.legend(fontsize=6.2, loc="lower right", framealpha=0.9)
+    panel(axa, "a")
 
-    # intermediate snapshots stacked on the right
+    # (b) SIDE: objective decomposition (the spikes live in the resonance term) -
+    axb = fig.add_subplot(gs[2, 0])
+    axb.semilogy(iters, losses, color="0.75", lw=0.8, label=r"total $\mathcal{L}$")
+    axb.semilogy(iters, L_freq, color="C1", lw=1.0,
+                 label=r"$\mathcal{L}_\mathrm{freq}$ (resonance)")
+    axb.semilogy(iters, L_int, color="C0", lw=1.6,
+                 label=r"$\mathcal{L}_\mathrm{int}=-\log\tilde\eta$")
+    if bnd is not None:
+        axb.axvline(bnd - 0.5, color="0.6", ls="--", lw=0.9)
+    axb.set_xlabel("iteration")
+    axb.set_ylabel("objective terms")
+    axb.legend(fontsize=5.8, ncol=3, loc="upper center", columnspacing=1.0,
+               handlelength=1.3, framealpha=0.9)
+    axb.set_ylim(0.1, 2e3)
+    panel(axb, "b")
+
+    # (c)-(e) intermediate structure snapshots stacked on the right -----------
     snap_iters = [iters[0], iters[len(iters) // 3], iters[-1]]
     from inverse_design.visualization import layout_from_entry
     by_iter = {e["params"]["iteration"]: e for e in rec}
@@ -250,7 +286,7 @@ def fig2():
         ax = fig.add_subplot(gs[r, 1])
         lay, c = layout_from_entry(by_iter[it])
         draw_layout_topview(lay, c, ax)
-        ax.set_aspect("auto")          # fill the cell (thumbnail of the schedule)
+        ax.set_aspect("auto")
         ax.set_title("")
         ax.set_xlabel("")
         ax.set_ylabel("")
@@ -259,7 +295,7 @@ def fig2():
         ax.text(0.99, 0.84, f"iter {it}", transform=ax.transAxes, ha="right",
                 va="top", fontsize=7,
                 bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="none", alpha=0.8))
-        panel(ax, "bcd"[r])
+        panel(ax, "cde"[r])
     _save(fig, "fig2_optimization.pdf")
 
 
